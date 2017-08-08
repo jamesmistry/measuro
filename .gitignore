@@ -1,0 +1,15 @@
+build/
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Makefile
+install_manifest.txt
+*.cmake
+.project
+.cproject
+.settings
+Testing
+*.deb
+*.rpm
+*.swp
+_CPack_Packages
