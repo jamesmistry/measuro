@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 
 configure_file (
-    "${CMAKE_SOURCE_DIR}/src/Measuro.hpp.in"
+    "${CMAKE_SOURCE_DIR}/src/Measuro.hpp"
     "${SRC_OUTPUT_PATH}/Measuro.hpp"
 )
 
