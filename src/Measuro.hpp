@@ -447,18 +447,40 @@ namespace measuro
         {
         }
 
-        std::shared_ptr<UintMetric> create_metric(UINT, std::string name, std::string unit, std::string description,
-                std::uint64_t initial_value = 0, DeadlineUnit rate_limit_1_per = DeadlineUnit::zero()) noexcept(false)
+        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > create_metric(UINT, std::string name, std::string unit, std::string description,
+                std::uint64_t initial_value = 0, DeadlineUnit cascade_rate_limit = DeadlineUnit(1000)) noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
 
-            auto metric = std::shared_ptr<UintMetric>(new UintMetric(name, unit, description, m_time_function, initial_value, rate_limit_1_per));
-            register_metric<UintMetric>(name, metric, m_uint_metrics);
+            auto metric = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
+            register_metric<NumberMetric<Metric::Kind::UINT, std::uint64_t> >(name, metric, m_uint_metrics);
             return metric;
         }
 
-        std::shared_ptr<UintMetric> operator()(UINT, std::string name) noexcept(false)
+        std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > create_metric(INT, std::string name, std::string unit, std::string description,
+                std::uint64_t initial_value = 0, DeadlineUnit cascade_rate_limit = DeadlineUnit(1000)) noexcept(false)
+        {
+            // TODO: Replace with std::scoped_lock on migration to C++17
+            std::lock_guard<std::mutex> lock(m_registry_mutex);
+
+            auto metric = std::make_shared<NumberMetric<Metric::Kind::INT, std::int64_t> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
+            register_metric<NumberMetric<Metric::Kind::INT, std::int64_t> >(name, metric, m_int_metrics);
+            return metric;
+        }
+
+        std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > create_metric(FLOAT, std::string name, std::string unit, std::string description,
+                float initial_value = 0, DeadlineUnit cascade_rate_limit = DeadlineUnit(1000)) noexcept(false)
+        {
+            // TODO: Replace with std::scoped_lock on migration to C++17
+            std::lock_guard<std::mutex> lock(m_registry_mutex);
+
+            auto metric = std::make_shared<NumberMetric<Metric::Kind::FLOAT, float> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
+            register_metric<NumberMetric<Metric::Kind::FLOAT, float> >(name, metric, m_float_metrics);
+            return metric;
+        }
+
+        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > operator()(UINT, std::string name) noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -489,12 +511,22 @@ namespace measuro
         public:
             RendererContext(Renderer & renderer) : m_renderer(renderer)
             {
+                m_renderer.suppressed_exception(false);
                 m_renderer.before();
             }
 
             ~RendererContext()
             {
-                m_renderer.after();
+                // Prevent exceptions in Renderer::after() from leaving the destructor
+                try
+                {
+                    m_renderer.after();
+                }
+                catch (...)
+                {
+                    m_renderer.suppressed_exception(true);
+                    return;
+                }
             }
 
         private:
@@ -514,7 +546,7 @@ namespace measuro
         }
 
         template<typename T>
-        void register_metric(std::string & metric_name, std::shared_ptr<T> & metric, std::vector<std::shared_ptr<T> > & metric_registry) noexcept(false)
+        void register_metric(std::string & metric_name, std::shared_ptr<T > & metric, std::vector<std::shared_ptr<T > > & metric_registry) noexcept(false)
         {
             if (metric_name.length() == 0)
             {
@@ -537,7 +569,9 @@ namespace measuro
         std::function<std::chrono::steady_clock::time_point ()> m_time_function;
         std::map<std::string, std::pair<std::shared_ptr<Metric>, std::uint64_t> > m_metrics;
 
-        std::vector<std::shared_ptr<UintMetric> > m_uint_metrics;
+        std::vector<std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > m_uint_metrics;
+        std::vector<std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > > m_int_metrics;
+        std::vector<std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > > m_float_metrics;
 
     };
 }
