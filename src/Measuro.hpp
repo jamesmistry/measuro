@@ -2,6 +2,7 @@
 #define MEASURO_HPP
 
 #include <string>
+#include <sstream>
 #include <cstdint>
 #include <chrono>
 #include <atomic>
@@ -13,9 +14,14 @@
 #include <exception>
 #include <ostream>
 #include <mutex>
+#include <type_traits>
+#include <cmath>
+#include <iostream>
 
 namespace measuro
 {
+
+    static_assert(std::is_trivially_copyable<std::chrono::steady_clock::time_point>::value, "time_point must be trivially copyable (for use with std::atomic)");
 
     class MeasuroError : public std::runtime_error
     {
@@ -129,63 +135,108 @@ namespace measuro
             case Kind::STR:
                 return "STR";
             case Kind::MOV_AVG:
-                return "AVG";
+                return "MOV_AVG";
             case Kind::BOOL:
                 return "BOOL";
             case Kind::SUM:
                 return "SUM";
+            default:
+                return "";
             }
         }
 
         virtual operator std::string() const = 0;
 
+        void register_hook(std::function<void (std::chrono::steady_clock::time_point update_time)> registrant)
+        {
+            std::lock_guard<std::mutex> lock(m_metric_mutex);
+
+            m_hooks.push_back(registrant);
+            m_has_hooks = true;
+        }
+
     protected:
+
+        void hook_handler(std::chrono::steady_clock::time_point update_time)
+        {
+            (void)(update_time);
+            return;
+        }
+
         void update(std::function<void()> update_logic) noexcept(false)
         {
-            if ((m_rate_limit == DeadlineUnit::zero()) ||
-                    (m_time_function() - m_last_updated) >= m_rate_limit)
+            auto now = m_time_function();
+
+            update_logic();
+
+            if ((m_has_hooks) && ((m_cascade_limit == DeadlineUnit::zero()) ||
+                    (now - m_last_hook_update.load()) >= m_cascade_limit))
             {
-                update_logic();
-                m_last_updated = m_time_function();
+                std::lock_guard<std::mutex> lock(m_metric_mutex);
+
+                for (auto hook : m_hooks)
+                {
+                    hook(m_last_hook_update);
+                }
+
+                m_last_hook_update = now;
             }
         }
+
+        std::mutex m_metric_mutex;
 
     private:
         Kind m_kind;
         std::string m_name;
         std::string m_unit;
         std::string m_description;
-        std::chrono::steady_clock::time_point m_last_updated;
+        std::atomic<std::chrono::steady_clock::time_point> m_last_hook_update;
         std::function<std::chrono::steady_clock::time_point ()> m_time_function;
-        DeadlineUnit m_rate_limit;
+        DeadlineUnit m_cascade_limit;
+        std::vector<std::function<void (std::chrono::steady_clock::time_point update_time)> > m_hooks;
+        std::atomic<bool> m_has_hooks;
 
     };
 
-    class UintMetric : public Metric
+    template<Metric::Kind K, typename T>
+    class NumberMetric : public Metric
     {
     public:
-        UintMetric(std::string name, std::string unit, std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                std::uint64_t initial_value = 0, DeadlineUnit rate_limit_1_per = DeadlineUnit::zero()) noexcept
-        : Metric(Metric::Kind::UINT, name, unit, description, time_function, rate_limit_1_per), m_value(initial_value)
+        NumberMetric(std::string name, std::string unit, std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+                T initial_value = 0, DeadlineUnit cascade_rate_limit = DeadlineUnit::zero()) noexcept
+        : Metric(K, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
 
-        UintMetric(const UintMetric &) = delete;
-        UintMetric(UintMetric &&) = delete;
-        UintMetric & operator=(const UintMetric &) = delete;
-        UintMetric & operator=(UintMetric &&) = delete;
+        NumberMetric(const NumberMetric &) = delete;
+        NumberMetric(NumberMetric &&) = delete;
+        NumberMetric & operator=(const NumberMetric &) = delete;
+        NumberMetric & operator=(NumberMetric &&) = delete;
 
         operator std::string() const noexcept(false)
         {
-            return std::to_string(m_value);
+            std::stringstream formatter;
+
+            // TODO: Replace with "static if" on migration to C++17
+            switch(kind())
+            {
+            case Metric::Kind::FLOAT:
+                formatter << std::fixed << std::setprecision(2) << m_value;
+                break;
+            default:
+                formatter << m_value;
+                break;
+            }
+
+            return formatter.str();
         }
 
-        operator std::uint64_t() const noexcept
+        operator T() const noexcept
         {
             return m_value;
         }
 
-        void operator=(std::uint64_t rhs) noexcept(false)
+        void operator=(T rhs) noexcept(false)
         {
             update([this, rhs]()
             {
@@ -193,9 +244,9 @@ namespace measuro
             });
         }
 
-        std::uint64_t operator++() noexcept
+        T operator++() noexcept
         {
-            std::uint64_t new_val = this->m_value;
+            T new_val = this->m_value;
 
             update([this, & new_val]()
             {
@@ -205,9 +256,9 @@ namespace measuro
             return new_val;
         }
 
-        std::uint64_t operator++(int) noexcept
+        T operator++(int) noexcept
         {
-            std::uint64_t old_val = this->m_value;
+            T old_val = this->m_value;
 
             update([this, & old_val]()
             {
@@ -217,9 +268,9 @@ namespace measuro
             return old_val;
         }
 
-        std::uint64_t operator--() noexcept
+        T operator--() noexcept
         {
-            std::uint64_t new_val = this->m_value;
+            T new_val = this->m_value;
 
             update([this, & new_val]()
             {
@@ -229,9 +280,9 @@ namespace measuro
             return new_val;
         }
 
-        std::uint64_t operator--(int) noexcept
+        T operator--(int) noexcept
         {
-            std::uint64_t old_val = this->m_value;
+            T old_val = this->m_value;
 
             update([this, & old_val]()
             {
@@ -241,9 +292,9 @@ namespace measuro
             return old_val;
         }
 
-        std::uint64_t operator+=(const std::uint64_t & rhs) noexcept
+        T operator+=(const T & rhs) noexcept
         {
-            std::uint64_t new_val = this->m_value;
+            T new_val = this->m_value;
 
             update([this, rhs, & new_val]()
             {
@@ -253,9 +304,9 @@ namespace measuro
             return new_val;
         }
 
-        std::uint64_t operator-=(const std::uint64_t & rhs) noexcept
+        T operator-=(const T & rhs) noexcept
         {
-            std::uint64_t new_val = this->m_value;
+            T new_val = this->m_value;
 
             update([this, rhs, & new_val]()
             {
