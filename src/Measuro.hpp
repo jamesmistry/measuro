@@ -90,9 +90,9 @@ namespace measuro
         enum class Kind { UINT = 0, INT = 1, FLOAT = 2, RATE = 3, STR = 4, MOV_AVG = 5, BOOL = 6, SUM = 7 };
 
         Metric(Kind kind, std::string name, std::string unit, std::string description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, DeadlineUnit rate_limit_1_per = DeadlineUnit::zero()) noexcept
+                std::function<std::chrono::steady_clock::time_point ()> time_function, DeadlineUnit cascade_rate_limit = DeadlineUnit::zero()) noexcept
         : m_kind(kind), m_name(name), m_unit(unit), m_description(description),
-          m_last_updated(time_function()), m_time_function(time_function), m_rate_limit(rate_limit_1_per)
+          m_last_hook_update(time_function()), m_time_function(time_function), m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
         {
         }
 
@@ -317,7 +317,57 @@ namespace measuro
         }
 
     private:
-        std::atomic<std::uint64_t> m_value;
+        std::atomic<T> m_value;
+
+    };
+
+    template<typename D>
+    class RateMetric : public Metric
+    {
+    public:
+        RateMetric(std::shared_ptr<D> & distance, float multiplier, std::string name, std::string unit, std::string description,
+                std::function<std::chrono::steady_clock::time_point ()> time_function, DeadlineUnit cascade_rate_limit = DeadlineUnit::zero()) noexcept
+        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_multiplier(multiplier), m_last_distance(0),
+          m_value(0.0f)
+        {
+            m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
+        }
+
+        operator std::string() const noexcept(false)
+        {
+            std::stringstream formatter;
+            formatter << std::fixed << std::setprecision(2) << m_value;
+            return formatter.str();
+        }
+
+        operator float() const noexcept
+        {
+            return m_value;
+        }
+
+    private:
+        void hook_handler(std::chrono::steady_clock::time_point update_time)
+        {
+            update([this, & update_time]()
+            {
+                auto time_elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(update_time - m_last_hook_time).count()) / 1000;
+                auto distance_travelled = float((*m_distance));
+
+                if (time_elapsed != 0.0)
+                {
+                    m_value = ((distance_travelled - m_last_distance) / time_elapsed) * m_multiplier;
+                }
+
+                m_last_distance = distance_travelled;
+                m_last_hook_time = update_time;
+            });
+        }
+
+        std::shared_ptr<D> m_distance;
+        float m_multiplier;
+        float m_last_distance;
+        float m_value;
+        std::chrono::steady_clock::time_point m_last_hook_time;
 
     };
 
