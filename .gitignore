@@ -14,3 +14,4 @@ Testing
 *.swp
 _CPack_Packages
 test/unit/measuro_unit_testexe
+/Debug
