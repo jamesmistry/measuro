@@ -374,7 +374,7 @@ namespace measuro
     class Renderer
     {
     public:
-        Renderer()
+        Renderer() : m_suppressed_exception(false)
         {
         }
 
@@ -397,6 +397,19 @@ namespace measuro
             (void)(metric);
             return;
         }
+
+        void suppressed_exception(bool state) noexcept
+        {
+            m_suppressed_exception = state;
+        }
+
+        bool suppressed_exception() const noexcept
+        {
+            return m_suppressed_exception;
+        }
+
+    private:
+        bool m_suppressed_exception;
 
     };
 
