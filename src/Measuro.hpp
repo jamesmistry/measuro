@@ -542,8 +542,8 @@ namespace measuro
 
     private:
         std::atomic<bool> m_value;
-        std::string m_true_rep;
-        std::string m_false_rep;
+        const std::string m_true_rep;
+        const std::string m_false_rep;
 
     };
 
