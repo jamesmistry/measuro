@@ -23,7 +23,7 @@ namespace measuro
         {
             if (m_offsets.size() > 0)
             {
-                auto return_val = m_relative_to += DeadlineUnit(m_offsets.front());
+                auto return_val = m_relative_to += std::chrono::milliseconds(m_offsets.front());
                 m_offsets.pop_front();
                 return return_val;
             }
@@ -43,7 +43,7 @@ namespace measuro
 
     public:
         StubHookMetric(NumberMetric<Metric::Kind::UINT, std::uint64_t> & target, std::string name, std::string unit, std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                std::uint64_t initial_value = 0, DeadlineUnit cascade_rate_limit = DeadlineUnit::zero()) noexcept
+                std::uint64_t initial_value = 0, std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
         : Metric(Metric::Kind::UINT, name, unit, description, time_function, cascade_rate_limit), m_target(target), m_value(initial_value)
         {
             target.register_hook(std::bind(&StubHookMetric::hook_handler, this, std::placeholders::_1));

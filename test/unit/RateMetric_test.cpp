@@ -16,13 +16,9 @@ namespace measuro
 
         (*target) = 0; // Baseline the clock
 
-        (*target) = 500;
-        EXPECT_FLOAT_EQ(float(subject), 200);
-        EXPECT_EQ(std::string(subject), "200.00");
-
         (*target) = 1000;
-        EXPECT_FLOAT_EQ(float(subject), 200);
-        EXPECT_EQ(std::string(subject), "200.00");
+        EXPECT_FLOAT_EQ(float(subject), 400);
+        EXPECT_EQ(std::string(subject), "400.00");
 
         (*target) = 1500;
         EXPECT_FLOAT_EQ(float(subject), 400);
@@ -43,7 +39,7 @@ namespace measuro
         StubTimeFunction sub_time_f({500, 500, 500, 500, 500, 500, 500});
 
         std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > target = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_name", "bps", "test desc", tgt_time_f, 0,
-                DeadlineUnit(1000));
+                std::chrono::milliseconds(1000));
         RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, 2, "test_rate", "test_unit", "test desc", sub_time_f);
 
         (*target) = 0; // Baseline the clock

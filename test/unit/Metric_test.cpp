@@ -74,17 +74,6 @@ namespace measuro
         EXPECT_EQ(subject.kind_name(), "STR");
     }
 
-    TEST(Metric, kind_name_mov_avg)
-    {
-
-        std::chrono::steady_clock::time_point dummy_clock;
-
-        NumberMetric<Metric::Kind::MOV_AVG, std::uint64_t> subject("test_name", "bps", "test desc", [&dummy_clock]{return dummy_clock;});
-
-        EXPECT_EQ(subject.kind(), Metric::Kind::MOV_AVG);
-        EXPECT_EQ(subject.kind_name(), "MOV_AVG");
-    }
-
     TEST(Metric, kind_name_bool)
     {
 
@@ -112,7 +101,7 @@ namespace measuro
 
         std::chrono::steady_clock::time_point dummy_clock = std::chrono::steady_clock::now();
 
-        NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", [&dummy_clock]{return dummy_clock;}, 0, DeadlineUnit::zero());
+        NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", [&dummy_clock]{return dummy_clock;}, 0, std::chrono::milliseconds::zero());
         StubHookMetric hook_metric(subject, "test_hook", "rate_unit", "test desc", [&dummy_clock]{return dummy_clock;});
 
         subject = 1; // First update
@@ -144,7 +133,7 @@ namespace measuro
     {
         StubTimeFunction time_f({0, 1001, 1000});
 
-        NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", time_f, 0, DeadlineUnit(1000));
+        NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", time_f, 0, std::chrono::milliseconds(1000));
         StubHookMetric hook_metric(subject, "test_hook", "rate_unit", "test desc", time_f);
 
         subject = 1; // First update
@@ -160,7 +149,7 @@ namespace measuro
     {
         StubTimeFunction time_f({0, 1001, 1001});
 
-        NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", time_f, 0, DeadlineUnit(1000));
+        NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", time_f, 0, std::chrono::milliseconds(1000));
         StubHookMetric hook_metric(subject, "test_hook", "rate_unit", "test desc", time_f);
 
         subject = 1; // First update
@@ -176,7 +165,7 @@ namespace measuro
     {
         StubTimeFunction time_f({0, 1001, 999});
 
-        NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", time_f, 0, DeadlineUnit(1000));
+        NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", time_f, 0, std::chrono::milliseconds(1000));
         StubHookMetric hook_metric(subject, "test_hook", "rate_unit", "test desc", time_f);
 
         subject = 1; // First update

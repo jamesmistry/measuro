@@ -49,14 +49,14 @@ namespace measuro
 
         NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", [&dummy_clock]{return dummy_clock;}, 1024);
 
-        EXPECT_EQ(subject, 1024);
+        EXPECT_EQ(std::uint64_t(subject), 1024);
     }
 
     TEST(NumberMetric, deadline)
     {
         StubTimeFunction time_f({0, 1001, 999});
 
-        NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", time_f, 0, DeadlineUnit(1000));
+        NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", time_f, 0, std::chrono::milliseconds(1000));
         StubHookMetric hook_metric(subject, "test_hook", "rate_unit", "test desc", time_f);
 
         subject = 1; // First update
