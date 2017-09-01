@@ -825,6 +825,24 @@ namespace measuro
             return m_float_metrics[entry->second.second];
         }
 
+        std::shared_ptr<StringMetric> operator()(STR, std::string name) noexcept(false)
+        {
+            // TODO: Replace with std::scoped_lock on migration to C++17
+            std::lock_guard<std::mutex> lock(m_registry_mutex);
+
+            auto entry = lookup(name, Metric::Kind::STR);
+            return m_str_metrics[entry->second.second];
+        }
+
+        std::shared_ptr<BoolMetric> operator()(BOOL, std::string name) noexcept(false)
+        {
+            // TODO: Replace with std::scoped_lock on migration to C++17
+            std::lock_guard<std::mutex> lock(m_registry_mutex);
+
+            auto entry = lookup(name, Metric::Kind::BOOL);
+            return m_bool_metrics[entry->second.second];
+        }
+
         void render(Renderer & renderer, std::string name_prefix = "") noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
