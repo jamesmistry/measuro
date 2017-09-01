@@ -781,6 +781,23 @@ namespace measuro
             return metric;
         }
 
+        std::shared_ptr<StringMetric> create_metric(STR, std::string name, std::string unit, std::string description,
+                std::string initial_value = "", std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        {
+            auto metric = std::make_shared<StringMetric>(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
+            register_metric<StringMetric>(name, metric, m_str_metrics);
+            return metric;
+        }
+
+        std::shared_ptr<BoolMetric> create_metric(BOOL, std::string name, std::string unit, std::string description,
+                bool initial_value = false, std::string true_rep = "TRUE", std::string false_rep = "FALSE",
+                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        {
+            auto metric = std::make_shared<BoolMetric>(name, unit, description, m_time_function, initial_value, true_rep, false_rep, cascade_rate_limit);
+            register_metric<BoolMetric>(name, metric, m_bool_metrics);
+            return metric;
+        }
+
         std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > operator()(UINT, std::string name) noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -912,6 +929,9 @@ namespace measuro
         std::vector<std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > > m_rate_uint_sum_metrics;
         std::vector<std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > > m_rate_int_sum_metrics;
         std::vector<std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > > m_rate_float_sum_metrics;
+
+        std::vector<std::shared_ptr<StringMetric> > m_str_metrics;
+        std::vector<std::shared_ptr<BoolMetric> > m_bool_metrics;
 
     };
 }
