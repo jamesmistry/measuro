@@ -12,7 +12,8 @@ namespace measuro
     TEST(StringMetric, init)
     {
         std::chrono::steady_clock::time_point dummy_clock;
-        StringMetric subject("test_name", "tst", "test desc 1", [&dummy_clock]{return dummy_clock;}, "init");
+        StringMetric subject("test_name", "test desc 1", [&dummy_clock]{return dummy_clock;}, "init");
+        EXPECT_EQ(subject.kind(), Metric::Kind::STR);
 
         EXPECT_EQ(std::string(subject), "init");
     }
@@ -20,7 +21,8 @@ namespace measuro
     TEST(StringMetric, assign)
     {
         std::chrono::steady_clock::time_point dummy_clock;
-        StringMetric subject("test_name", "tst", "test desc 1", [&dummy_clock]{return dummy_clock;}, "");
+        StringMetric subject("test_name", "test desc 1", [&dummy_clock]{return dummy_clock;}, "");
+        EXPECT_EQ(subject.kind(), Metric::Kind::STR);
 
         EXPECT_EQ(std::string(subject), "");
 

@@ -12,7 +12,8 @@ namespace measuro
     TEST(BoolMetric, true_default_val)
     {
         std::chrono::steady_clock::time_point dummy_clock;
-        BoolMetric subject("test_name", "tst", "test desc 1", [&dummy_clock]{return dummy_clock;}, true);
+        BoolMetric subject("test_name", "test desc 1", [&dummy_clock]{return dummy_clock;}, true);
+        EXPECT_EQ(subject.kind(), Metric::Kind::BOOL);
 
         EXPECT_EQ(bool(subject), true);
         EXPECT_EQ(std::string(subject), "TRUE");
@@ -21,7 +22,8 @@ namespace measuro
     TEST(BoolMetric, false_default_val)
     {
         std::chrono::steady_clock::time_point dummy_clock;
-        BoolMetric subject("test_name", "tst", "test desc 1", [&dummy_clock]{return dummy_clock;}, false);
+        BoolMetric subject("test_name", "test desc 1", [&dummy_clock]{return dummy_clock;}, false);
+        EXPECT_EQ(subject.kind(), Metric::Kind::BOOL);
 
         EXPECT_EQ(bool(subject), false);
         EXPECT_EQ(std::string(subject), "FALSE");
@@ -30,7 +32,8 @@ namespace measuro
     TEST(BoolMetric, custom_vals)
     {
         std::chrono::steady_clock::time_point dummy_clock;
-        BoolMetric subject("test_name", "tst", "test desc 1", [&dummy_clock]{return dummy_clock;}, true, "yes", "no");
+        BoolMetric subject("test_name", "test desc 1", [&dummy_clock]{return dummy_clock;}, true, "yes", "no");
+        EXPECT_EQ(subject.kind(), Metric::Kind::BOOL);
 
         EXPECT_EQ(bool(subject), true);
         EXPECT_EQ(std::string(subject), "yes");
@@ -43,7 +46,8 @@ namespace measuro
     TEST(BoolMetric, not_op)
     {
         std::chrono::steady_clock::time_point dummy_clock;
-        BoolMetric subject("test_name", "tst", "test desc 1", [&dummy_clock]{return dummy_clock;}, false);
+        BoolMetric subject("test_name", "test desc 1", [&dummy_clock]{return dummy_clock;}, false);
+        EXPECT_EQ(subject.kind(), Metric::Kind::BOOL);
 
         EXPECT_EQ(bool(subject), false);
         EXPECT_EQ(std::string(subject), "FALSE");
