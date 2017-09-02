@@ -1,3 +1,27 @@
+/*!
+ * @file Measuro.hpp
+ *
+ * Copyright (c) 2017 James Mistry
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 #ifndef MEASURO_HPP
 #define MEASURO_HPP
 
@@ -27,7 +51,7 @@ namespace measuro
     class MeasuroError : public std::runtime_error
     {
     public:
-        MeasuroError(std::string description) : std::runtime_error(description.c_str())
+        MeasuroError(const std::string description) : std::runtime_error(description.c_str())
         {
         }
 
@@ -39,7 +63,7 @@ namespace measuro
     class MetricNameError : public MeasuroError
     {
     public:
-        MetricNameError(std::string description) : MeasuroError(description)
+        MetricNameError(const std::string description) : MeasuroError(description)
         {
         }
     };
@@ -47,7 +71,7 @@ namespace measuro
     class MetricTypeError : public MeasuroError
     {
     public:
-        MetricTypeError(std::string description) : MeasuroError(description)
+        MetricTypeError(const std::string description) : MeasuroError(description)
         {
         }
     };
@@ -99,8 +123,9 @@ namespace measuro
     public:
         enum class Kind { UINT = 0, INT = 1, FLOAT = 2, RATE = 3, STR = 4, BOOL = 5, SUM = 6 };
 
-        Metric(Kind kind, std::string name, std::string unit, std::string description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+        Metric(const Kind kind, const std::string name, const std::string unit, const std::string description,
+                std::function<std::chrono::steady_clock::time_point ()> time_function,
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
         : m_kind(kind), m_name(name), m_unit(unit), m_description(description),
           m_last_hook_update(time_function()), m_time_function(time_function), m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
         {
@@ -171,7 +196,7 @@ namespace measuro
 
     protected:
 
-        virtual void hook_handler(std::chrono::steady_clock::time_point update_time)
+        virtual void hook_handler(const std::chrono::steady_clock::time_point update_time)
         {
             (void)(update_time);
             return;
@@ -229,8 +254,8 @@ namespace measuro
     class NumberMetric : public Metric, public DiscoverableNativeType<T>
     {
     public:
-        NumberMetric(std::string name, std::string unit, std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                T initial_value = 0, std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+        NumberMetric(const std::string name, const std::string unit, const std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+                const T initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
         : Metric(K, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
@@ -240,7 +265,7 @@ namespace measuro
         NumberMetric & operator=(const NumberMetric &) = delete;
         NumberMetric & operator=(NumberMetric &&) = delete;
 
-        operator std::string() const noexcept(false)
+        operator std::string() const noexcept(false) override final
         {
             std::stringstream formatter;
 
@@ -343,8 +368,8 @@ namespace measuro
     class RateMetric : public Metric, public DiscoverableNativeType<float>
     {
     public:
-        RateMetric(std::shared_ptr<D> & distance, float multiplier, std::string name, std::string unit, std::string description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+        RateMetric(std::shared_ptr<D> & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
         : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_multiplier(multiplier), m_last_distance(0),
           m_value(0.0f)
         {
@@ -356,7 +381,7 @@ namespace measuro
         RateMetric & operator=(const RateMetric &) = delete;
         RateMetric & operator=(RateMetric &&) = delete;
 
-        operator std::string() const noexcept(false)
+        operator std::string() const noexcept(false) override final
         {
             std::stringstream formatter;
             formatter << std::fixed << std::setprecision(2) << m_value;
@@ -369,7 +394,7 @@ namespace measuro
         }
 
     private:
-        void hook_handler(std::chrono::steady_clock::time_point update_time)
+        void hook_handler(const std::chrono::steady_clock::time_point update_time) override final
         {
             update([this, & update_time]()
             {
@@ -398,8 +423,8 @@ namespace measuro
     class SumMetric : public Metric, public DiscoverableNativeType<typename D::NativeType>
     {
     public:
-        SumMetric(std::initializer_list<std::shared_ptr<D> > targets, std::string name, std::string unit, std::string description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+        SumMetric(std::initializer_list<std::shared_ptr<D> > targets, const std::string name, const std::string unit, const std::string description,
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
         : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
         {
             for (auto target : targets)
@@ -408,8 +433,8 @@ namespace measuro
             }
         }
 
-        SumMetric(std::string name, std::string unit, std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+        SumMetric(const std::string name, const std::string unit, const std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
         : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
         {
         }
@@ -436,13 +461,13 @@ namespace measuro
 
             for (std::size_t index=0;index<m_targets.size();++index)
             {
-                total += (typename D::NativeType)(*m_targets[index]);
+                total += (const typename D::NativeType)(*m_targets[index]);
             }
 
             return total;
         }
 
-        operator std::string() const noexcept(false)
+        operator std::string() const noexcept(false) override final
         {
             auto total = (operator typename D::NativeType)();
 
@@ -460,8 +485,8 @@ namespace measuro
     class StringMetric : public Metric, public DiscoverableNativeType<std::string>
     {
     public:
-        StringMetric(std::string name, std::string unit, std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                std::string initial_value, std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+        StringMetric(const std::string name, const std::string unit, const std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+                const std::string initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
         : Metric(Metric::Kind::STR, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
@@ -471,7 +496,7 @@ namespace measuro
         StringMetric & operator=(const StringMetric &) = delete;
         StringMetric & operator=(StringMetric &&) = delete;
 
-        operator std::string() const noexcept(false)
+        operator std::string() const noexcept(false) override final
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_metric_mutex);
@@ -498,8 +523,8 @@ namespace measuro
     class BoolMetric : public Metric, public DiscoverableNativeType<bool>
     {
     public:
-        BoolMetric(std::string name, std::string unit, std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                bool initial_value, std::string true_rep = "TRUE", std::string false_rep = "FALSE", std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+        BoolMetric(const std::string name, const std::string unit, const std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+                const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE", const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
         : Metric(Metric::Kind::STR, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value), m_true_rep(true_rep),
           m_false_rep(false_rep)
         {
@@ -510,7 +535,7 @@ namespace measuro
         BoolMetric & operator=(const BoolMetric &) = delete;
         BoolMetric & operator=(BoolMetric &&) = delete;
 
-        operator std::string() const noexcept
+        operator std::string() const noexcept override final
         {
             if (m_value)
             {
@@ -600,12 +625,12 @@ namespace measuro
         {
         }
 
-        virtual void after() noexcept(false)
+        virtual void after() noexcept(false) override
         {
             m_destination << std::endl;
         }
 
-        void render(const std::shared_ptr<Metric> & metric) noexcept(false)
+        void render(const std::shared_ptr<Metric> & metric) noexcept(false) override final
         {
             m_destination << metric->name() << " = " << metric << "\n";
         }
@@ -626,12 +651,12 @@ namespace measuro
         {
         }
 
-        virtual void after() noexcept(false)
+        virtual void after() noexcept(false) override
         {
             m_destination.flush();
         }
 
-        void render(const std::shared_ptr<Metric> & metric) noexcept(false)
+        void render(const std::shared_ptr<Metric> & metric) noexcept(false) override final
         {
 
         }
@@ -649,32 +674,32 @@ namespace measuro
         {
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > create_metric(UINT, std::string name, std::string unit, std::string description,
-                std::uint64_t initial_value = 0, std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > create_metric(const UINT, const std::string name, const std::string unit, const std::string description,
+                const std::uint64_t initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
             register_metric<NumberMetric<Metric::Kind::UINT, std::uint64_t> >(name, metric, m_uint_metrics);
             return metric;
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > create_metric(INT, std::string name, std::string unit, std::string description,
-                std::uint64_t initial_value = 0, std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > create_metric(const INT, const std::string name, const std::string unit, const std::string description,
+                const std::uint64_t initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<NumberMetric<Metric::Kind::INT, std::int64_t> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
             register_metric<NumberMetric<Metric::Kind::INT, std::int64_t> >(name, metric, m_int_metrics);
             return metric;
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > create_metric(FLOAT, std::string name, std::string unit, std::string description,
-                float initial_value = 0, std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > create_metric(const FLOAT, const std::string name, const std::string unit, const std::string description,
+                const float initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<NumberMetric<Metric::Kind::FLOAT, float> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
             register_metric<NumberMetric<Metric::Kind::FLOAT, float> >(name, metric, m_float_metrics);
             return metric;
         }
 
-        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > create_metric(RATE, UINT,
-                std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > & distance, float multiplier, std::string name, std::string unit, std::string description,
+        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > create_metric(const RATE, const UINT,
+                std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
@@ -682,35 +707,35 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > create_metric(RATE, INT,
-                std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > & distance, float multiplier, std::string name, std::string unit, std::string description,
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > create_metric(const RATE, const INT,
+                std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, metric, m_int_rate_metrics);
             return metric;
         }
 
-        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > create_metric(RATE, FLOAT,
-                std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > & distance, float multiplier, std::string name, std::string unit, std::string description,
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > create_metric(const RATE, const FLOAT,
+                std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, metric, m_float_rate_metrics);
             return metric;
         }
 
-        std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > create_metric(RATE, SUM, UINT,
-                std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > & distance, float multiplier, std::string name, std::string unit, std::string description,
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > create_metric(const RATE, const SUM, const UINT,
+                std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, metric, m_sum_uint_rate_metrics);
             return metric;
         }
 
-        std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > create_metric(RATE, SUM, INT,
-                std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > & distance, float multiplier, std::string name, std::string unit, std::string description,
+        std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > create_metric(const RATE, const SUM, const INT,
+                std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
@@ -718,8 +743,8 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > create_metric(RATE, SUM, FLOAT,
-                std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > & distance, float multiplier, std::string name, std::string unit, std::string description,
+        std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > create_metric(const RATE, const SUM, const FLOAT,
+                std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
@@ -727,78 +752,84 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > create_metric(SUM, UINT,
-                std::string name, std::string unit, std::string description, std::initializer_list<std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > targets = {},
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > create_metric(const SUM, const UINT,
+                const std::string name, const std::string unit, const std::string description,
+                const std::initializer_list<std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > targets = {},
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, metric, m_uint_sum_metrics);
             return metric;
         }
 
-        std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > create_metric(SUM, INT,
-                std::string name, std::string unit, std::string description, std::initializer_list<std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > > targets = {},
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > create_metric(const SUM, const INT,
+                const std::string name, const std::string unit, const std::string description,
+                const std::initializer_list<std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > > targets = {},
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, metric, m_int_sum_metrics);
             return metric;
         }
 
-        std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > create_metric(SUM, FLOAT,
-                std::string name, std::string unit, std::string description, std::initializer_list<std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > > targets = {},
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > create_metric(const SUM, const FLOAT,
+                const std::string name, const std::string unit, const std::string description,
+                const std::initializer_list<std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > > targets = {},
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, metric, m_float_sum_metrics);
             return metric;
         }
 
-        std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > create_metric(SUM, RATE, UINT,
-                std::string name, std::string unit, std::string description, std::initializer_list<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > targets = {},
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > create_metric(const SUM, const RATE, const UINT,
+                const std::string name, const std::string unit, const std::string description,
+                const std::initializer_list<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > targets = {},
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, metric, m_rate_uint_sum_metrics);
             return metric;
         }
 
-        std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > create_metric(SUM, RATE, INT,
-                std::string name, std::string unit, std::string description, std::initializer_list<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > targets = {},
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > create_metric(const SUM, const RATE, const INT,
+                const std::string name, const std::string unit, const std::string description,
+                const std::initializer_list<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > targets = {},
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, metric, m_rate_int_sum_metrics);
             return metric;
         }
 
-        std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > create_metric(SUM, RATE, FLOAT,
-                std::string name, std::string unit, std::string description, std::initializer_list<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > targets = {},
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > create_metric(const SUM, const RATE, const FLOAT,
+                const std::string name, const std::string unit, const std::string description,
+                const std::initializer_list<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > targets = {},
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, metric, m_rate_float_sum_metrics);
             return metric;
         }
 
-        std::shared_ptr<StringMetric> create_metric(STR, std::string name, std::string unit, std::string description,
-                std::string initial_value = "", std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<StringMetric> create_metric(const STR, const std::string name, const std::string unit, const std::string description,
+                const std::string initial_value = "", const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<StringMetric>(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
             register_metric<StringMetric>(name, metric, m_str_metrics);
             return metric;
         }
 
-        std::shared_ptr<BoolMetric> create_metric(BOOL, std::string name, std::string unit, std::string description,
-                bool initial_value = false, std::string true_rep = "TRUE", std::string false_rep = "FALSE",
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+        std::shared_ptr<BoolMetric> create_metric(const BOOL, const std::string name, const std::string unit, const std::string description,
+                const bool initial_value = false, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<BoolMetric>(name, unit, description, m_time_function, initial_value, true_rep, false_rep, cascade_rate_limit);
             register_metric<BoolMetric>(name, metric, m_bool_metrics);
             return metric;
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > operator()(UINT, std::string name) noexcept(false)
+        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > operator()(const UINT, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -807,7 +838,7 @@ namespace measuro
             return m_uint_metrics[entry->second.second];
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > operator()(INT, std::string name) noexcept(false)
+        std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > operator()(const INT, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -816,7 +847,7 @@ namespace measuro
             return m_int_metrics[entry->second.second];
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > operator()(FLOAT, std::string name) noexcept(false)
+        std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > operator()(const FLOAT, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -825,7 +856,7 @@ namespace measuro
             return m_float_metrics[entry->second.second];
         }
 
-        std::shared_ptr<StringMetric> operator()(STR, std::string name) noexcept(false)
+        std::shared_ptr<StringMetric> operator()(const STR, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -834,7 +865,7 @@ namespace measuro
             return m_str_metrics[entry->second.second];
         }
 
-        std::shared_ptr<BoolMetric> operator()(BOOL, std::string name) noexcept(false)
+        std::shared_ptr<BoolMetric> operator()(const BOOL, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -843,7 +874,7 @@ namespace measuro
             return m_bool_metrics[entry->second.second];
         }
 
-        void render(Renderer & renderer, std::string name_prefix = "") noexcept(false)
+        void render(Renderer & renderer, const std::string name_prefix = "") const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -888,7 +919,7 @@ namespace measuro
         };
 
         std::map<std::string, std::pair<std::shared_ptr<Metric>, std::uint64_t> >::const_iterator
-        lookup(const std::string & name, Metric::Kind expected_kind) const noexcept(false)
+        lookup(const std::string & name, const Metric::Kind expected_kind) const noexcept(false)
         {
             auto entry = m_metrics.find(name);
             if (entry == m_metrics.end())
@@ -905,7 +936,7 @@ namespace measuro
         }
 
         template<typename T>
-        void register_metric(std::string & metric_name, std::shared_ptr<T > & metric, std::vector<std::shared_ptr<T > > & metric_registry) noexcept(false)
+        void register_metric(const std::string & metric_name, std::shared_ptr<T > & metric, std::vector<std::shared_ptr<T > > & metric_registry) noexcept(false)
         {
             std::lock_guard<std::mutex> lock(m_registry_mutex);
 
