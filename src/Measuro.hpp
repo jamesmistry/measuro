@@ -640,10 +640,156 @@ namespace measuro
 
     };
 
+    /*!
+     * @class JsonStringLiteral
+     *
+     * Converts a data buffer to a JSON string literal for insertion
+     * directly in JSON data. The string literal representation contains
+     * the source data with leading and trailing double quotes along with
+     * appropriately escaped characters according to standards (see
+     * https://tools.ietf.org/html/rfc7159).
+     */
+    class JsonStringLiteral
+    {
+
+    public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]   data    Contents of the string literal
+         */
+        explicit JsonStringLiteral(const std::string & data)
+        {
+            literalise(data, m_result);
+        }
+
+        /*!
+         * Constructor.
+         *
+         * @param[in]   data    Contents of the string literal
+         */
+        explicit JsonStringLiteral(const char * data)
+        {
+            std::string strData(data);
+
+            literalise(strData, m_result);
+        }
+
+        JsonStringLiteral(const JsonStringLiteral & rhs) = default;
+        JsonStringLiteral(JsonStringLiteral && rhs)  : m_result(std::move(rhs.m_result))
+        {
+        }
+
+        JsonStringLiteral & operator=(JsonStringLiteral & rhs) = default;
+        JsonStringLiteral & operator=(JsonStringLiteral && rhs)
+        {
+            if (this != &rhs)
+            {
+                m_result = std::move(rhs.m_result);
+                rhs.m_result.clear();
+            }
+
+            return (*this);
+        }
+
+        /*!
+         * Get a pointer to a null-terminated string containing the JSON string literal,
+         * including leading and terminating double quotes, and appropriately escaped
+         * source characters.
+         */
+        operator const char * () const
+        {
+            return m_result.c_str();
+        }
+
+    private:
+        /*!
+         * Create a JSON-compatible string literal representation of in, and write it to
+         * out.
+         *
+         * @param[in]   in  The string from which to create a JSON string literal
+         * @param[out]  out The result
+         */
+        void literalise(const std::string & in, std::string & out) const
+        {
+            out.push_back('"');
+
+            for (auto c : in)
+            {
+                if ((c >= 0) && (c <= 0x1f))
+                {
+                    switch(c)
+                    {
+                    case 8: // Backspace
+                        out.push_back('\\');
+                        out.push_back('b');
+                        break;
+                    case 9: // Horizontal tab
+                        out.push_back('\\');
+                        out.push_back('t');
+                        break;
+                    case 10: // Line feed
+                        out.push_back('\\');
+                        out.push_back('n');
+                        break;
+                    case 12: // Form feed
+                        out.push_back('\\');
+                        out.push_back('f');
+                        break;
+                    case 13: // Carriage return
+                        out.push_back('\\');
+                        out.push_back('r');
+                        break;
+                    default:
+                        escapeAsHex(c, out);
+                        break;
+                    }
+                }
+                else
+                {
+                    switch(c)
+                    {
+                    case '"':
+                    case '\\':
+                    case '/':
+                        // Must be escaped
+                        out.push_back('\\');
+                        out.push_back(c);
+                        break;
+                    default:
+                        out.push_back(c);
+                        break;
+                    }
+                }
+            }
+
+            out.push_back('"');
+        }
+
+        /*!
+         * Escape c as a JSON hex escape sequence of the form \uXXXX, where XXXX is a
+         * 32-bit integer in hexadecimal notation, and append it to out.
+         *
+         * @param[in]   c   The character to escape
+         * @param[out]  out The string to which the escaped character will be appended
+         */
+        void escapeAsHex(char c, std::string & out) const
+        {
+            std::stringstream formatter;
+
+            formatter << "\\u00" << std::uppercase << std::setfill('0') << std::setw(2) << std::hex << static_cast<std::uint16_t>(c);
+
+            out += formatter.str();
+        }
+
+        std::string m_result; //!< The normalised JSON string literal
+
+    };
+
     class JsonRenderer : Renderer
     {
     public:
-        JsonRenderer(std::ostream & destination) : m_destination(destination)
+        JsonRenderer(std::ostream & destination) : m_destination(destination), m_count(0)
         {
         }
 
@@ -651,18 +797,58 @@ namespace measuro
         {
         }
 
+        virtual void before() noexcept(false) override
+        {
+            m_count = 0;
+            m_destination << '{';
+        }
+
         virtual void after() noexcept(false) override
         {
+            m_destination << '}';
             m_destination.flush();
         }
 
         void render(const std::shared_ptr<Metric> & metric) noexcept(false) override final
         {
+            if (m_count > 0)
+            {
+                m_destination << ',';
+            }
 
+            m_destination << JsonStringLiteral(metric->name()) << ":{";
+
+            m_destination << JsonStringLiteral("value") << ':';
+            switch(metric->kind())
+            {
+            case Metric::Kind::UINT:
+            case Metric::Kind::INT:
+            case Metric::Kind::FLOAT:
+            case Metric::Kind::RATE:
+            case Metric::Kind::SUM:
+                m_destination << std::string((*metric));
+                break;
+            case Metric::Kind::STR:
+            case Metric::Kind::BOOL:
+                m_destination << JsonStringLiteral(std::string((*metric)));
+                break;
+            default:
+                m_destination << JsonStringLiteral("");
+            }
+            m_destination << ',';
+
+            m_destination << JsonStringLiteral("unit") << ':' << JsonStringLiteral(metric->unit()) << ',';
+            m_destination << JsonStringLiteral("kind") << ':' << JsonStringLiteral(metric->kind_name()) << ',';
+            m_destination << JsonStringLiteral("description") << ':' << JsonStringLiteral(metric->description());
+
+            m_destination << '}';
+
+            ++m_count;
         }
 
     private:
         std::ostream & m_destination;
+        std::size_t m_count;
 
     };
 
