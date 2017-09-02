@@ -1116,11 +1116,9 @@ namespace measuro
             render_with_prefix(renderer, name_prefix);
         }
 
-        void render(Renderer & renderer, const char * name_prefix) const noexcept(false)
+        void render(Renderer & renderer, const std::string name_prefix) const noexcept(false)
         {
-            std::string prefix(name_prefix);
-
-            render_with_prefix(renderer, prefix);
+            render_with_prefix(renderer, name_prefix);
         }
 
         void render(Renderer & renderer) const noexcept(false)
