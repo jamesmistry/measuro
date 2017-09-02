@@ -3,12 +3,16 @@ cmake_minimum_required(VERSION 2.6)
 include_directories(${SRC_OUTPUT_PATH})
 link_directories("/usr/local/lib/gtest")
 
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  # G++
+  set(GCC_COVERAGE_COMPILE_FLAGS "--coverage")
+endif()
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 file(GLOB test_src *.cpp)
 
 add_executable(measuro_unit_testexe ${test_src})
-
-target_link_libraries(measuro_unit_testexe gtest gtest_main pthread)
+set_target_properties(measuro_unit_testexe PROPERTIES COMPILE_FLAGS ${GCC_COVERAGE_COMPILE_FLAGS})
+target_link_libraries(measuro_unit_testexe gtest gtest_main pthread gcov)
 
 add_test(measuro_unit_testexe ${CMAKE_CURRENT_SOURCE_DIR}/measuro_unit_testexe)
