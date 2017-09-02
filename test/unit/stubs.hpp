@@ -6,6 +6,9 @@
 #include <chrono>
 #include <iostream>
 #include <functional>
+#include <string>
+#include <exception>
+#include <iostream>
 
 #include "Measuro.hpp"
 
@@ -74,6 +77,77 @@ namespace measuro
         NumberMetric<Metric::Kind::UINT, std::uint64_t> & m_target;
         std::uint64_t m_value;
         std::chrono::steady_clock::time_point m_hook_time;
+
+    };
+
+    class StubRenderer : public Renderer
+    {
+    public:
+        StubRenderer(bool exception_after = false)
+        : Renderer(), m_exception_after(exception_after)
+        {
+        }
+
+        virtual ~StubRenderer()
+        {
+        }
+
+        void exception_after(bool value)
+        {
+            m_exception_after = value;
+        }
+
+        virtual void before() override final
+        {
+            m_op_log.clear();
+            m_op_log.push_back("before()");
+        }
+
+        virtual void after() override final
+        {
+            m_op_log.push_back("after()");
+            if (m_exception_after)
+            {
+                throw std::runtime_error("after()");
+            }
+        }
+
+        virtual void render(const std::shared_ptr<Metric> & metric) override final
+        {
+            m_op_log.push_back("render(" + metric->name() + ")");
+        }
+
+        bool check_log(const std::initializer_list<std::string> expected) const
+        {
+            bool found_expected = true;
+
+            auto log_iter = m_op_log.cbegin();
+            for (auto val : expected)
+            {
+                if (log_iter != m_op_log.end())
+                {
+                    if ((*log_iter) != val)
+                    {
+                        std::cout << "Expected " << val << ", got " << (*log_iter);
+                        found_expected = false;
+                        break;
+                    }
+                }
+                else
+                {
+                    std::cout << "Expected " << val << ", got end-of-log";
+                    found_expected = false;
+                    break;
+                }
+                ++log_iter;
+            }
+
+            return found_expected;
+        }
+
+    private:
+        bool m_exception_after;
+        std::list<std::string> m_op_log;
 
     };
 
