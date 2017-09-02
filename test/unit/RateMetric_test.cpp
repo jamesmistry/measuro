@@ -13,6 +13,7 @@ namespace measuro
 
         std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > target = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_name", "bps", "test desc", tgt_time_f, 1);
         RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, 2, "test_rate", "test_unit", "test desc", sub_time_f);
+        EXPECT_EQ(subject.kind(), Metric::Kind::RATE);
 
         (*target) = 0; // Baseline the clock
 

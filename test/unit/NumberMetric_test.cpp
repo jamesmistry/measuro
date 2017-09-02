@@ -12,6 +12,7 @@ namespace measuro
         std::chrono::steady_clock::time_point dummy_clock;
 
         NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", [&dummy_clock]{return dummy_clock;});
+        EXPECT_EQ(subject.kind(), Metric::Kind::UINT);
 
         EXPECT_EQ(subject.name(), "test_name");
         EXPECT_EQ(subject.unit(), "bps");
@@ -24,6 +25,7 @@ namespace measuro
         std::chrono::steady_clock::time_point dummy_clock;
 
         NumberMetric<Metric::Kind::INT, std::int64_t> subject("test_name", "bps", "test desc", [&dummy_clock]{return dummy_clock;});
+        EXPECT_EQ(subject.kind(), Metric::Kind::INT);
 
         EXPECT_EQ(subject.name(), "test_name");
         EXPECT_EQ(subject.unit(), "bps");
@@ -36,6 +38,7 @@ namespace measuro
         std::chrono::steady_clock::time_point dummy_clock;
 
         NumberMetric<Metric::Kind::FLOAT, float> subject("test_name", "bps", "test desc", [&dummy_clock]{return dummy_clock;});
+        EXPECT_EQ(subject.kind(), Metric::Kind::FLOAT);
 
         EXPECT_EQ(subject.name(), "test_name");
         EXPECT_EQ(subject.unit(), "bps");
@@ -48,6 +51,7 @@ namespace measuro
         std::chrono::steady_clock::time_point dummy_clock;
 
         NumberMetric<Metric::Kind::UINT, std::uint64_t> subject("test_name", "bps", "test desc", [&dummy_clock]{return dummy_clock;}, 1024);
+        EXPECT_EQ(subject.kind(), Metric::Kind::UINT);
 
         EXPECT_EQ(std::uint64_t(subject), 1024);
     }
