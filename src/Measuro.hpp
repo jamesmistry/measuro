@@ -903,6 +903,24 @@ namespace measuro
 
     };
 
+    using UintHandle = std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> >;
+    using IntHandle = std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> >;
+    using FloatHandle = std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> >;
+    using RateOfUintHandle = std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >;
+    using RateOfIntHandle = std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >;
+    using RateOfFloatHandle = std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >;
+    using RateOfSumOfUintHandle = std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >;
+    using RateOfSumOfIntHandle = std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >;
+    using RateOfSumOfFloatHandle = std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >;
+    using SumOfUintHandle = std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >;
+    using SumOfIntHandle = std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >;
+    using SumOfFloatHandle = std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >;
+    using SumOfRateOfUintHandle = std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >;
+    using SumOfRateOfIntHandle = std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >;
+    using SumOfRateOfFloatHandle = std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >;
+    using StringHandle = std::shared_ptr<StringMetric>;
+    using BoolHandle = std::shared_ptr<BoolMetric>;
+
     class Registry
     {
     public:
@@ -911,7 +929,7 @@ namespace measuro
         {
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > create_metric(const UINT, const std::string name, const std::string unit, const std::string description,
+        UintHandle create_metric(const UINT, const std::string name, const std::string unit, const std::string description,
                 const std::uint64_t initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
@@ -919,7 +937,7 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > create_metric(const INT, const std::string name, const std::string unit, const std::string description,
+        IntHandle create_metric(const INT, const std::string name, const std::string unit, const std::string description,
                 const std::uint64_t initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<NumberMetric<Metric::Kind::INT, std::int64_t> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
@@ -927,7 +945,7 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > create_metric(const FLOAT, const std::string name, const std::string unit, const std::string description,
+        FloatHandle create_metric(const FLOAT, const std::string name, const std::string unit, const std::string description,
                 const float initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<NumberMetric<Metric::Kind::FLOAT, float> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
@@ -935,8 +953,8 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > create_metric(const RATE, const UINT,
-                std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
+        RateOfUintHandle create_metric(const RATE, const UINT,
+                UintHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
@@ -944,8 +962,8 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > create_metric(const RATE, const INT,
-                std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
+        RateOfIntHandle create_metric(const RATE, const INT,
+                IntHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
@@ -953,8 +971,8 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > create_metric(const RATE, const FLOAT,
-                std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
+        RateOfFloatHandle create_metric(const RATE, const FLOAT,
+                FloatHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
@@ -962,8 +980,8 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > create_metric(const RATE, const SUM, const UINT,
-                std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
+        RateOfSumOfUintHandle create_metric(const RATE, const SUM, const UINT,
+                SumOfUintHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
@@ -971,8 +989,8 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > create_metric(const RATE, const SUM, const INT,
-                std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
+        RateOfSumOfIntHandle create_metric(const RATE, const SUM, const INT,
+                SumOfIntHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
@@ -980,8 +998,8 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > create_metric(const RATE, const SUM, const FLOAT,
-                std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
+        RateOfSumOfFloatHandle create_metric(const RATE, const SUM, const FLOAT,
+                SumOfFloatHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
@@ -989,9 +1007,9 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > create_metric(const SUM, const UINT,
+        SumOfUintHandle create_metric(const SUM, const UINT,
                 const std::string name, const std::string unit, const std::string description,
-                const std::initializer_list<std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > targets = {},
+                const std::initializer_list<UintHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
@@ -999,9 +1017,9 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > create_metric(const SUM, const INT,
+        SumOfIntHandle create_metric(const SUM, const INT,
                 const std::string name, const std::string unit, const std::string description,
-                const std::initializer_list<std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > > targets = {},
+                const std::initializer_list<IntHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
@@ -1009,9 +1027,9 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > create_metric(const SUM, const FLOAT,
+        SumOfFloatHandle create_metric(const SUM, const FLOAT,
                 const std::string name, const std::string unit, const std::string description,
-                const std::initializer_list<std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > > targets = {},
+                const std::initializer_list<FloatHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
@@ -1019,9 +1037,9 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > create_metric(const SUM, const RATE, const UINT,
+        SumOfRateOfUintHandle create_metric(const SUM, const RATE, const UINT,
                 const std::string name, const std::string unit, const std::string description,
-                const std::initializer_list<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > targets = {},
+                const std::initializer_list<RateOfUintHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
@@ -1029,9 +1047,9 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > create_metric(const SUM, const RATE, const INT,
+        SumOfRateOfIntHandle create_metric(const SUM, const RATE, const INT,
                 const std::string name, const std::string unit, const std::string description,
-                const std::initializer_list<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > targets = {},
+                const std::initializer_list<RateOfIntHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
@@ -1039,9 +1057,9 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > create_metric(const SUM, const RATE, const FLOAT,
+        SumOfRateOfFloatHandle create_metric(const SUM, const RATE, const FLOAT,
                 const std::string name, const std::string unit, const std::string description,
-                const std::initializer_list<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > targets = {},
+                const std::initializer_list<RateOfFloatHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
@@ -1049,7 +1067,7 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<StringMetric> create_metric(const STR, const std::string name, const std::string unit, const std::string description,
+        StringHandle create_metric(const STR, const std::string name, const std::string unit, const std::string description,
                 const std::string initial_value = "", const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             auto metric = std::make_shared<StringMetric>(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
@@ -1057,7 +1075,7 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<BoolMetric> create_metric(const BOOL, const std::string name, const std::string unit, const std::string description,
+        BoolHandle create_metric(const BOOL, const std::string name, const std::string unit, const std::string description,
                 const bool initial_value = false, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
@@ -1066,7 +1084,7 @@ namespace measuro
             return metric;
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > operator()(const UINT, const std::string name) const noexcept(false)
+        UintHandle operator()(const UINT, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -1075,7 +1093,7 @@ namespace measuro
             return m_uint_metrics[entry->second.second];
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > operator()(const INT, const std::string name) const noexcept(false)
+        IntHandle operator()(const INT, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -1084,7 +1102,7 @@ namespace measuro
             return m_int_metrics[entry->second.second];
         }
 
-        std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > operator()(const FLOAT, const std::string name) const noexcept(false)
+        FloatHandle operator()(const FLOAT, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -1093,7 +1111,7 @@ namespace measuro
             return m_float_metrics[entry->second.second];
         }
 
-        std::shared_ptr<StringMetric> operator()(const STR, const std::string name) const noexcept(false)
+        StringHandle operator()(const STR, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -1102,7 +1120,7 @@ namespace measuro
             return m_str_metrics[entry->second.second];
         }
 
-        std::shared_ptr<BoolMetric> operator()(const BOOL, const std::string name) const noexcept(false)
+        BoolHandle operator()(const BOOL, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -1221,26 +1239,26 @@ namespace measuro
         std::function<std::chrono::steady_clock::time_point ()> m_time_function;
         std::map<std::string, std::pair<std::shared_ptr<Metric>, std::uint64_t> > m_metrics;
 
-        std::vector<std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > m_uint_metrics;
-        std::vector<std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> > > m_int_metrics;
-        std::vector<std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> > > m_float_metrics;
+        std::vector<UintHandle> m_uint_metrics;
+        std::vector<IntHandle > m_int_metrics;
+        std::vector<FloatHandle > m_float_metrics;
 
-        std::vector<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > m_uint_rate_metrics;
-        std::vector<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > m_int_rate_metrics;
-        std::vector<std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > m_float_rate_metrics;
-        std::vector<std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > > m_sum_uint_rate_metrics;
-        std::vector<std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > > m_sum_int_rate_metrics;
-        std::vector<std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > > m_sum_float_rate_metrics;
+        std::vector<RateOfUintHandle > m_uint_rate_metrics;
+        std::vector<RateOfIntHandle > m_int_rate_metrics;
+        std::vector<RateOfFloatHandle > m_float_rate_metrics;
+        std::vector<RateOfSumOfUintHandle > m_sum_uint_rate_metrics;
+        std::vector<RateOfSumOfIntHandle > m_sum_int_rate_metrics;
+        std::vector<RateOfSumOfFloatHandle > m_sum_float_rate_metrics;
 
-        std::vector<std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > m_uint_sum_metrics;
-        std::vector<std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > m_int_sum_metrics;
-        std::vector<std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > m_float_sum_metrics;
-        std::vector<std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > > > m_rate_uint_sum_metrics;
-        std::vector<std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > > > m_rate_int_sum_metrics;
-        std::vector<std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > > > m_rate_float_sum_metrics;
+        std::vector<SumOfUintHandle > m_uint_sum_metrics;
+        std::vector<SumOfIntHandle > m_int_sum_metrics;
+        std::vector<SumOfFloatHandle > m_float_sum_metrics;
+        std::vector<SumOfRateOfUintHandle > m_rate_uint_sum_metrics;
+        std::vector<SumOfRateOfIntHandle > m_rate_int_sum_metrics;
+        std::vector<SumOfRateOfFloatHandle > m_rate_float_sum_metrics;
 
-        std::vector<std::shared_ptr<StringMetric> > m_str_metrics;
-        std::vector<std::shared_ptr<BoolMetric> > m_bool_metrics;
+        std::vector<StringHandle > m_str_metrics;
+        std::vector<BoolHandle > m_bool_metrics;
 
     };
 }
