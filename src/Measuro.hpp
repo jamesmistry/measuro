@@ -202,9 +202,9 @@ namespace measuro
                 return "BOOL";
             case Kind::SUM:
                 return "SUM";
-            default:
-                return "";
             }
+
+            return "";
         }
 
         virtual operator std::string() const = 0;
@@ -931,6 +931,8 @@ namespace measuro
         std::size_t m_count;
 
     };
+
+
 
     using UintHandle = std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> >;
     using IntHandle = std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> >;
