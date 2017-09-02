@@ -139,6 +139,22 @@ namespace measuro
         {
         }
 
+        Metric(const Kind kind, const std::string & name, const std::string & description,
+                std::function<std::chrono::steady_clock::time_point ()> time_function,
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+        : m_kind(kind), m_name(name), m_description(description),
+          m_last_hook_update(time_function()), m_time_function(time_function), m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
+        {
+        }
+
+        Metric(const Kind kind, const char * name, const char * description,
+                std::function<std::chrono::steady_clock::time_point ()> time_function,
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+        : m_kind(kind), m_name(name), m_description(description), m_last_hook_update(time_function()), m_time_function(time_function),
+          m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
+        {
+        }
+
         virtual ~Metric()
         {
         }
@@ -200,6 +216,11 @@ namespace measuro
 
             m_hooks.push_back(registrant);
             m_has_hooks = true;
+        }
+
+        std::chrono::milliseconds cascade_rate_limit() const
+        {
+            return m_cascade_limit;
         }
 
     protected:
@@ -415,6 +436,11 @@ namespace measuro
             return m_value;
         }
 
+        float multiplier() const
+        {
+            return m_multiplier;
+        }
+
     private:
         void hook_handler(const std::chrono::steady_clock::time_point update_time) override final
         {
@@ -515,6 +541,11 @@ namespace measuro
             return formatter.str();
         }
 
+        std::size_t target_count() const
+        {
+            return m_targets.size();
+        }
+
     private:
         std::vector<std::shared_ptr<D> > m_targets;
 
@@ -523,15 +554,15 @@ namespace measuro
     class StringMetric : public Metric, public DiscoverableNativeType<std::string>
     {
     public:
-        StringMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+        StringMetric(const std::string & name, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const std::string & initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
-        : Metric(Metric::Kind::STR, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
+        : Metric(Metric::Kind::STR, name, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
 
-        StringMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+        StringMetric(const char * name, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const char * initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
-        : Metric(Metric::Kind::STR, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
+        : Metric(Metric::Kind::STR, name, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
 
@@ -567,16 +598,16 @@ namespace measuro
     class BoolMetric : public Metric, public DiscoverableNativeType<bool>
     {
     public:
-        BoolMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+        BoolMetric(const std::string & name, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE", const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
-        : Metric(Metric::Kind::STR, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value), m_true_rep(true_rep),
+        : Metric(Metric::Kind::BOOL, name, description, time_function, cascade_rate_limit), m_value(initial_value), m_true_rep(true_rep),
           m_false_rep(false_rep)
         {
         }
 
-        BoolMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+        BoolMetric(const char * name, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE", const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
-        : Metric(Metric::Kind::STR, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value), m_true_rep(true_rep),
+        : Metric(Metric::Kind::BOOL, name, description, time_function, cascade_rate_limit), m_value(initial_value), m_true_rep(true_rep),
           m_false_rep(false_rep)
         {
         }
@@ -665,7 +696,7 @@ namespace measuro
 
     };
 
-    class PlainRenderer : Renderer
+    class PlainRenderer : public Renderer
     {
     public:
         PlainRenderer(std::ostream & destination) : m_destination(destination)
@@ -683,7 +714,7 @@ namespace measuro
 
         void render(const std::shared_ptr<Metric> & metric) noexcept(false) override final
         {
-            m_destination << metric->name() << " = " << metric << "\n";
+            m_destination << metric->name() << " = " << std::string((*metric)) << "\n";
         }
 
     private:
@@ -727,7 +758,7 @@ namespace measuro
         }
 
         JsonStringLiteral(const JsonStringLiteral & rhs) = default;
-        JsonStringLiteral(JsonStringLiteral && rhs)  : m_result(std::move(rhs.m_result))
+        JsonStringLiteral(JsonStringLiteral && rhs) : m_result(std::move(rhs.m_result))
         {
         }
 
@@ -837,7 +868,7 @@ namespace measuro
 
     };
 
-    class JsonRenderer : Renderer
+    class JsonRenderer : public Renderer
     {
     public:
         JsonRenderer(std::ostream & destination) : m_destination(destination), m_count(0)
@@ -883,8 +914,6 @@ namespace measuro
             case Metric::Kind::BOOL:
                 m_destination << JsonStringLiteral(std::string((*metric)));
                 break;
-            default:
-                m_destination << JsonStringLiteral("");
             }
             m_destination << ',';
 
@@ -1012,7 +1041,10 @@ namespace measuro
                 const std::initializer_list<UintHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
-            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, unit, description, m_time_function, cascade_rate_limit);
+
+            initialise_sum_with_targets(metric, targets);
+
             register_metric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, metric, m_uint_sum_metrics);
             return metric;
         }
@@ -1022,7 +1054,10 @@ namespace measuro
                 const std::initializer_list<IntHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
-            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, unit, description, m_time_function, cascade_rate_limit);
+
+            initialise_sum_with_targets(metric, targets);
+
             register_metric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, metric, m_int_sum_metrics);
             return metric;
         }
@@ -1032,7 +1067,10 @@ namespace measuro
                 const std::initializer_list<FloatHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
-            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, unit, description, m_time_function, cascade_rate_limit);
+
+            initialise_sum_with_targets(metric, targets);
+
             register_metric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, metric, m_float_sum_metrics);
             return metric;
         }
@@ -1042,7 +1080,10 @@ namespace measuro
                 const std::initializer_list<RateOfUintHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
-            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, unit, description, m_time_function, cascade_rate_limit);
+
+            initialise_sum_with_targets(metric, targets);
+
             register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, metric, m_rate_uint_sum_metrics);
             return metric;
         }
@@ -1052,7 +1093,10 @@ namespace measuro
                 const std::initializer_list<RateOfIntHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
-            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, unit, description, m_time_function, cascade_rate_limit);
+
+            initialise_sum_with_targets(metric, targets);
+
             register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, metric, m_rate_int_sum_metrics);
             return metric;
         }
@@ -1062,24 +1106,27 @@ namespace measuro
                 const std::initializer_list<RateOfFloatHandle > targets = {},
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
-            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(targets, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, unit, description, m_time_function, cascade_rate_limit);
+
+            initialise_sum_with_targets(metric, targets);
+
             register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, metric, m_rate_float_sum_metrics);
             return metric;
         }
 
-        StringHandle create_metric(const STR, const std::string name, const std::string unit, const std::string description,
+        StringHandle create_metric(const STR, const std::string name, const std::string description,
                 const std::string initial_value = "", const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
-            auto metric = std::make_shared<StringMetric>(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
+            auto metric = std::make_shared<StringMetric>(name, description, m_time_function, initial_value, cascade_rate_limit);
             register_metric<StringMetric>(name, metric, m_str_metrics);
             return metric;
         }
 
-        BoolHandle create_metric(const BOOL, const std::string name, const std::string unit, const std::string description,
+        BoolHandle create_metric(const BOOL, const std::string name, const std::string description,
                 const bool initial_value = false, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
-            auto metric = std::make_shared<BoolMetric>(name, unit, description, m_time_function, initial_value, true_rep, false_rep, cascade_rate_limit);
+            auto metric = std::make_shared<BoolMetric>(name, description, m_time_function, initial_value, true_rep, false_rep, cascade_rate_limit);
             register_metric<BoolMetric>(name, metric, m_bool_metrics);
             return metric;
         }
@@ -1134,9 +1181,10 @@ namespace measuro
             render_with_prefix(renderer, name_prefix);
         }
 
-        void render(Renderer & renderer, const std::string name_prefix) const noexcept(false)
+        void render(Renderer & renderer, const char * name_prefix) const noexcept(false)
         {
-            render_with_prefix(renderer, name_prefix);
+            std::string str_prefix(name_prefix);
+            render_with_prefix(renderer, str_prefix);
         }
 
         void render(Renderer & renderer) const noexcept(false)
@@ -1153,6 +1201,15 @@ namespace measuro
         }
 
     private:
+        template<typename M, typename T>
+        void initialise_sum_with_targets(M metric, const std::initializer_list<T> targets) const
+        {
+            for (auto target : targets)
+            {
+                metric->add_target(target);
+            }
+        }
+
         void render_with_prefix(Renderer & renderer, const std::string & name_prefix) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
