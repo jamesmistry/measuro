@@ -43,6 +43,8 @@
 #include <type_traits>
 #include <cmath>
 #include <iostream>
+#include <thread>
+#include <condition_variable>
 
 namespace measuro
 {
@@ -948,8 +950,6 @@ namespace measuro
 
     };
 
-
-
     using UintHandle = std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> >;
     using IntHandle = std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> >;
     using FloatHandle = std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> >;
@@ -971,6 +971,61 @@ namespace measuro
     class Registry
     {
     public:
+        class RenderSchedule
+        {
+        public:
+            RenderSchedule(Registry & registry, Renderer & renderer, const std::chrono::seconds interval)
+            : m_registry(registry), m_renderer(renderer), m_stop(false), m_interval(interval), m_executor(std::bind(&RenderSchedule::executor_logic, this))
+            {
+            }
+
+            ~RenderSchedule()
+            {
+                try
+                {
+                    stop();
+                }
+                catch(...)
+                {
+                }
+            }
+
+            void stop()
+            {
+                std::unique_lock<std::mutex> lock(m_cond_mutex);
+                m_stop = true;
+                lock.unlock();
+                m_stop_cond.notify_one();
+                m_executor.join();
+            }
+
+        private:
+            void executor_logic()
+            {
+                do
+                {
+                    std::unique_lock<std::mutex> lock(m_cond_mutex);
+                    m_stop_cond.wait_for(lock, m_interval);
+                    if (m_stop)
+                    {
+                        break;
+                    }
+
+                    m_registry.render(m_renderer);
+                }
+                while(!m_stop);
+            }
+
+            Registry & m_registry;
+            Renderer & m_renderer;
+            std::atomic<bool> m_stop;
+            const std::chrono::seconds m_interval;
+            std::thread m_executor;
+            mutable std::condition_variable m_stop_cond;
+            mutable std::mutex m_cond_mutex;
+
+        };
+
         Registry(std::function<std::chrono::steady_clock::time_point ()> time_function = []{return std::chrono::steady_clock::now();}) noexcept
         : m_time_function(time_function)
         {
