@@ -411,15 +411,6 @@ namespace measuro
         EXPECT_EQ(subject(BOOL::KIND, "test_name2"), metric2);
     }
 
-    TEST(Registry, lookup_anon)
-    {
-        std::chrono::steady_clock::time_point dummy_clock;
-        Registry subject([&dummy_clock]{return dummy_clock;});
-        auto anon_metric = subject.create_metric(UINT::KIND, "", "test_unit", "test_description", 200, std::chrono::milliseconds(2000));
-
-        EXPECT_THROW(subject(UINT::KIND, ""), MetricNameError); // Anonymous metrics can't be looked up by name
-    }
-
     TEST(Registry, lookup_bad_type)
     {
         std::chrono::steady_clock::time_point dummy_clock;

@@ -29,6 +29,7 @@
 #include <string>
 #include <sstream>
 #include <cstdint>
+#include <limits>
 #include <chrono>
 #include <atomic>
 #include <functional>
@@ -1004,7 +1005,7 @@ namespace measuro
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
-            register_metric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, metric, m_uint_rate_metrics);
+            register_metric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, metric);
             return metric;
         }
 
@@ -1013,7 +1014,7 @@ namespace measuro
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
-            register_metric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, metric, m_int_rate_metrics);
+            register_metric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, metric);
             return metric;
         }
 
@@ -1022,7 +1023,7 @@ namespace measuro
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
-            register_metric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, metric, m_float_rate_metrics);
+            register_metric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, metric);
             return metric;
         }
 
@@ -1031,7 +1032,7 @@ namespace measuro
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
-            register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, metric, m_sum_uint_rate_metrics);
+            register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, metric);
             return metric;
         }
 
@@ -1040,7 +1041,7 @@ namespace measuro
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
-            register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, metric, m_sum_int_rate_metrics);
+            register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, metric);
             return metric;
         }
 
@@ -1049,7 +1050,7 @@ namespace measuro
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
-            register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, metric, m_sum_float_rate_metrics);
+            register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, metric);
             return metric;
         }
 
@@ -1062,7 +1063,7 @@ namespace measuro
 
             initialise_sum_with_targets(metric, targets);
 
-            register_metric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, metric, m_uint_sum_metrics);
+            register_metric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, metric);
             return metric;
         }
 
@@ -1075,7 +1076,7 @@ namespace measuro
 
             initialise_sum_with_targets(metric, targets);
 
-            register_metric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, metric, m_int_sum_metrics);
+            register_metric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, metric);
             return metric;
         }
 
@@ -1088,7 +1089,7 @@ namespace measuro
 
             initialise_sum_with_targets(metric, targets);
 
-            register_metric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, metric, m_float_sum_metrics);
+            register_metric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, metric);
             return metric;
         }
 
@@ -1101,7 +1102,7 @@ namespace measuro
 
             initialise_sum_with_targets(metric, targets);
 
-            register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, metric, m_rate_uint_sum_metrics);
+            register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, metric);
             return metric;
         }
 
@@ -1114,7 +1115,7 @@ namespace measuro
 
             initialise_sum_with_targets(metric, targets);
 
-            register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, metric, m_rate_int_sum_metrics);
+            register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, metric);
             return metric;
         }
 
@@ -1127,7 +1128,7 @@ namespace measuro
 
             initialise_sum_with_targets(metric, targets);
 
-            register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, metric, m_rate_float_sum_metrics);
+            register_metric<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, metric);
             return metric;
         }
 
@@ -1283,8 +1284,25 @@ namespace measuro
                 throw MetricTypeError("The metric called \"" + name + "\" is of an unexpected kind: actual kind is " +
                         entry->second.first->kind_name() + "; expected kind is " + entry->second.first->kind_name(expected_kind));
             }
+            else if (entry->second.second == std::numeric_limits<std::uint64_t>::max())
+            {
+                throw MetricTypeError("The metric called \"" + name + "\" is not of a kind that can be looked up");
+            }
 
             return entry;
+        }
+
+        template<typename T>
+        void register_metric(const std::string & metric_name, std::shared_ptr<T > & metric) noexcept(false)
+        {
+            std::lock_guard<std::mutex> lock(m_registry_mutex);
+
+            if (m_metrics.find(metric_name) != m_metrics.end())
+            {
+                throw MetricNameError("A metric already exists with the name \"" + metric_name + "\"");
+            }
+
+            m_metrics[metric_name] = std::pair<std::shared_ptr<Metric>, std::uint64_t>(metric, std::numeric_limits<std::uint64_t>::max());
         }
 
         template<typename T>
@@ -1292,21 +1310,13 @@ namespace measuro
         {
             std::lock_guard<std::mutex> lock(m_registry_mutex);
 
-            if (metric_name.length() == 0)
+            if (m_metrics.find(metric_name) != m_metrics.end())
             {
-                // Anonymous metric - not associated with a name
-                metric_registry.push_back(metric);
+                throw MetricNameError("A metric already exists with the name \"" + metric_name + "\"");
             }
-            else
-            {
-                if (m_metrics.find(metric_name) != m_metrics.end())
-                {
-                    throw MetricNameError("A metric already exists with the name \"" + metric_name + "\"");
-                }
 
-                metric_registry.push_back(metric);
-                m_metrics[metric_name] = std::pair<std::shared_ptr<Metric>, std::uint64_t>(metric, metric_registry.size() - 1);
-            }
+            metric_registry.push_back(metric);
+            m_metrics[metric_name] = std::pair<std::shared_ptr<Metric>, std::uint64_t>(metric, metric_registry.size() - 1);
         }
 
         mutable std::mutex m_registry_mutex;
@@ -1316,21 +1326,6 @@ namespace measuro
         std::vector<UintHandle> m_uint_metrics;
         std::vector<IntHandle> m_int_metrics;
         std::vector<FloatHandle> m_float_metrics;
-
-        std::vector<RateOfUintHandle> m_uint_rate_metrics;
-        std::vector<RateOfIntHandle> m_int_rate_metrics;
-        std::vector<RateOfFloatHandle> m_float_rate_metrics;
-        std::vector<RateOfSumOfUintHandle> m_sum_uint_rate_metrics;
-        std::vector<RateOfSumOfIntHandle> m_sum_int_rate_metrics;
-        std::vector<RateOfSumOfFloatHandle> m_sum_float_rate_metrics;
-
-        std::vector<SumOfUintHandle> m_uint_sum_metrics;
-        std::vector<SumOfIntHandle> m_int_sum_metrics;
-        std::vector<SumOfFloatHandle> m_float_sum_metrics;
-        std::vector<SumOfRateOfUintHandle> m_rate_uint_sum_metrics;
-        std::vector<SumOfRateOfIntHandle> m_rate_int_sum_metrics;
-        std::vector<SumOfRateOfFloatHandle> m_rate_float_sum_metrics;
-
         std::vector<StringHandle> m_str_metrics;
         std::vector<BoolHandle> m_bool_metrics;
 
