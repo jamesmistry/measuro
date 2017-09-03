@@ -1314,25 +1314,25 @@ namespace measuro
         std::map<std::string, std::pair<std::shared_ptr<Metric>, std::uint64_t> > m_metrics;
 
         std::vector<UintHandle> m_uint_metrics;
-        std::vector<IntHandle > m_int_metrics;
-        std::vector<FloatHandle > m_float_metrics;
+        std::vector<IntHandle> m_int_metrics;
+        std::vector<FloatHandle> m_float_metrics;
 
-        std::vector<RateOfUintHandle > m_uint_rate_metrics;
-        std::vector<RateOfIntHandle > m_int_rate_metrics;
-        std::vector<RateOfFloatHandle > m_float_rate_metrics;
-        std::vector<RateOfSumOfUintHandle > m_sum_uint_rate_metrics;
-        std::vector<RateOfSumOfIntHandle > m_sum_int_rate_metrics;
-        std::vector<RateOfSumOfFloatHandle > m_sum_float_rate_metrics;
+        std::vector<RateOfUintHandle> m_uint_rate_metrics;
+        std::vector<RateOfIntHandle> m_int_rate_metrics;
+        std::vector<RateOfFloatHandle> m_float_rate_metrics;
+        std::vector<RateOfSumOfUintHandle> m_sum_uint_rate_metrics;
+        std::vector<RateOfSumOfIntHandle> m_sum_int_rate_metrics;
+        std::vector<RateOfSumOfFloatHandle> m_sum_float_rate_metrics;
 
-        std::vector<SumOfUintHandle > m_uint_sum_metrics;
-        std::vector<SumOfIntHandle > m_int_sum_metrics;
-        std::vector<SumOfFloatHandle > m_float_sum_metrics;
-        std::vector<SumOfRateOfUintHandle > m_rate_uint_sum_metrics;
-        std::vector<SumOfRateOfIntHandle > m_rate_int_sum_metrics;
-        std::vector<SumOfRateOfFloatHandle > m_rate_float_sum_metrics;
+        std::vector<SumOfUintHandle> m_uint_sum_metrics;
+        std::vector<SumOfIntHandle> m_int_sum_metrics;
+        std::vector<SumOfFloatHandle> m_float_sum_metrics;
+        std::vector<SumOfRateOfUintHandle> m_rate_uint_sum_metrics;
+        std::vector<SumOfRateOfIntHandle> m_rate_int_sum_metrics;
+        std::vector<SumOfRateOfFloatHandle> m_rate_float_sum_metrics;
 
-        std::vector<StringHandle > m_str_metrics;
-        std::vector<BoolHandle > m_bool_metrics;
+        std::vector<StringHandle> m_str_metrics;
+        std::vector<BoolHandle> m_bool_metrics;
 
     };
 }
