@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <thread>
 
 #include "Measuro.hpp"
 #include "stubs.hpp"
@@ -451,5 +452,23 @@ namespace measuro
         subject.render(rndr, "module1");
         EXPECT_FALSE(rndr.suppressed_exception());
         EXPECT_TRUE(rndr.check_log({"before()", "render(module1.test_a)", "render(module1.test_b)", "after()"}));
+    }
+
+    TEST(Registry, schedule_render)
+    {
+        std::chrono::steady_clock::time_point dummy_clock;
+        Registry subject([&dummy_clock]{return dummy_clock;});
+        auto metric = subject.create_metric(UINT::KIND, "test_name", "test_unit", "test_description", 100, std::chrono::milliseconds(2000));
+
+        StubRenderer rndr;
+        subject.render_schedule(rndr, std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+
+        EXPECT_GT(rndr.render_count(), 0);
+
+        subject.cancel_render_schedule();
+        rndr.render_count(0);
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        EXPECT_EQ(rndr.render_count(), 0);
     }
 }

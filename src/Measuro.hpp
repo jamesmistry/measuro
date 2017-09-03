@@ -841,7 +841,7 @@ namespace measuro
                         out.push_back('r');
                         break;
                     default:
-                        escapeAsHex(c, out);
+                        escape_as_hex(c, out);
                         break;
                     }
                 }
@@ -873,7 +873,7 @@ namespace measuro
          * @param[in]   c   The character to escape
          * @param[out]  out The string to which the escaped character will be appended
          */
-        void escapeAsHex(char c, std::string & out) const
+        void escape_as_hex(char c, std::string & out) const
         {
             std::stringstream formatter;
 
@@ -992,9 +992,7 @@ namespace measuro
 
             void stop()
             {
-                std::unique_lock<std::mutex> lock(m_cond_mutex);
                 m_stop = true;
-                lock.unlock();
                 m_stop_cond.notify_one();
                 m_executor.join();
             }
@@ -1005,7 +1003,10 @@ namespace measuro
                 do
                 {
                     std::unique_lock<std::mutex> lock(m_cond_mutex);
-                    m_stop_cond.wait_for(lock, m_interval);
+
+                    auto timeout_when = std::chrono::steady_clock::now() + m_interval;
+                    m_stop_cond.wait_until(lock, timeout_when, [&timeout_when, this](){return ((std::chrono::steady_clock::now() >= timeout_when) || (m_stop));});
+
                     if (m_stop)
                     {
                         break;
@@ -1273,6 +1274,20 @@ namespace measuro
             }
         }
 
+        void cancel_render_schedule()
+        {
+            std::lock_guard<std::mutex> lock(m_registry_mutex);
+
+            m_sched = nullptr;
+        }
+
+        void render_schedule(Renderer & renderer, const std::chrono::seconds interval)
+        {
+            std::lock_guard<std::mutex> lock(m_registry_mutex);
+
+            m_sched = std::make_shared<RenderSchedule>((*this), renderer, interval);
+        }
+
     private:
         template<typename M, typename T>
         void initialise_sum_with_targets(M metric, const std::initializer_list<T> targets) const
@@ -1384,6 +1399,7 @@ namespace measuro
         std::vector<StringHandle> m_str_metrics;
         std::vector<BoolHandle> m_bool_metrics;
 
+        std::shared_ptr<RenderSchedule> m_sched;
     };
 }
 

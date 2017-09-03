@@ -84,7 +84,7 @@ namespace measuro
     {
     public:
         StubRenderer(bool exception_after = false)
-        : Renderer(), m_exception_after(exception_after)
+        : Renderer(), m_exception_after(exception_after), m_render_count(0)
         {
         }
 
@@ -99,6 +99,7 @@ namespace measuro
 
         virtual void before() override final
         {
+            m_render_count = 0;
             m_op_log.clear();
             m_op_log.push_back("before()");
         }
@@ -115,6 +116,7 @@ namespace measuro
         virtual void render(const std::shared_ptr<Metric> & metric) override final
         {
             m_op_log.push_back("render(" + metric->name() + ")");
+            ++m_render_count;
         }
 
         bool check_log(const std::initializer_list<std::string> expected) const
@@ -145,8 +147,19 @@ namespace measuro
             return found_expected;
         }
 
+        std::size_t render_count() const
+        {
+            return m_render_count;
+        }
+
+        void render_count(std::size_t count)
+        {
+            m_render_count = count;
+        }
+
     private:
         bool m_exception_after;
+        std::size_t m_render_count;
         std::list<std::string> m_op_log;
 
     };
