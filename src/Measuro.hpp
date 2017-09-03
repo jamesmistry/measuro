@@ -403,18 +403,32 @@ namespace measuro
     class RateMetric : public Metric, public DiscoverableNativeType<float>
     {
     public:
-        RateMetric(std::shared_ptr<D> & distance, const float multiplier, const std::string & name, const std::string & unit, const std::string & description,
+        RateMetric(std::shared_ptr<D> & distance, std::function<float (float)> result_proxy, const std::string & name, const std::string & unit, const std::string & description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
-        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_multiplier(multiplier), m_last_distance(0),
-          m_value(0.0f)
+        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_result_proxy(result_proxy),
+          m_last_distance(0), m_value(0.0f)
         {
             m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
         }
 
-        RateMetric(std::shared_ptr<D> & distance, const float multiplier, const char * name, const char * unit, const char * description,
+        RateMetric(std::shared_ptr<D> & distance, std::function<float (float)> result_proxy, const char * name, const char * unit, const char * description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
-        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_multiplier(multiplier), m_last_distance(0),
-          m_value(0.0f)
+        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_result_proxy(result_proxy),
+          m_last_distance(0), m_value(0.0f)
+        {
+            m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
+        }
+
+        RateMetric(std::shared_ptr<D> & distance, const std::string & name, const std::string & unit, const std::string & description,
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_last_distance(0), m_value(0.0f)
+        {
+            m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
+        }
+
+        RateMetric(std::shared_ptr<D> & distance, const char * name, const char * unit, const char * description,
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_last_distance(0), m_value(0.0f)
         {
             m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
         }
@@ -436,9 +450,9 @@ namespace measuro
             return m_value;
         }
 
-        float multiplier() const
+        float proxy_test(float val) const
         {
-            return m_multiplier;
+            return ((m_result_proxy) ? m_result_proxy(val) : val);
         }
 
     private:
@@ -451,7 +465,8 @@ namespace measuro
 
                 if (time_elapsed != 0.0) // Avoid div by zero
                 {
-                    m_value = ((distance_travelled - m_last_distance) / time_elapsed) * m_multiplier;
+                    float value = ((distance_travelled - m_last_distance) / time_elapsed);
+                    m_value = ((m_result_proxy) ? m_result_proxy(value) : value);
                 }
 
                 m_last_distance = distance_travelled;
@@ -460,7 +475,7 @@ namespace measuro
         }
 
         std::shared_ptr<D> m_distance;
-        float m_multiplier;
+        std::function<float (float)> m_result_proxy;
         float m_last_distance;
         std::atomic<float> m_value;
         std::chrono::steady_clock::time_point m_last_hook_time;
@@ -985,55 +1000,55 @@ namespace measuro
         }
 
         RateOfUintHandle create_metric(const RATE, const UINT,
-                UintHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                UintHandle & distance, const std::string name, const std::string unit, const std::string description,
+                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
-            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, metric, m_uint_rate_metrics);
             return metric;
         }
 
         RateOfIntHandle create_metric(const RATE, const INT,
-                IntHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                IntHandle & distance, const std::string name, const std::string unit, const std::string description,
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
-            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, metric, m_int_rate_metrics);
             return metric;
         }
 
         RateOfFloatHandle create_metric(const RATE, const FLOAT,
-                FloatHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                FloatHandle & distance, const std::string name, const std::string unit, const std::string description,
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
-            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, metric, m_float_rate_metrics);
             return metric;
         }
 
         RateOfSumOfUintHandle create_metric(const RATE, const SUM, const UINT,
-                SumOfUintHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                SumOfUintHandle & distance, const std::string name, const std::string unit, const std::string description,
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
-            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, metric, m_sum_uint_rate_metrics);
             return metric;
         }
 
         RateOfSumOfIntHandle create_metric(const RATE, const SUM, const INT,
-                SumOfIntHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                SumOfIntHandle & distance, const std::string name, const std::string unit, const std::string description,
+                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
-            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, metric, m_sum_int_rate_metrics);
             return metric;
         }
 
         RateOfSumOfFloatHandle create_metric(const RATE, const SUM, const FLOAT,
-                SumOfFloatHandle & distance, const float multiplier, const std::string name, const std::string unit, const std::string description,
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                SumOfFloatHandle & distance, const std::string name, const std::string unit, const std::string description,
+                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
-            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(distance, multiplier, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
             register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, metric, m_sum_float_rate_metrics);
             return metric;
         }

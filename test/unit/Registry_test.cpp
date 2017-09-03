@@ -68,14 +68,14 @@ namespace measuro
         std::chrono::steady_clock::time_point dummy_clock;
         Registry subject([&dummy_clock]{return dummy_clock;});
         auto target = subject.create_metric(UINT::KIND, "a_test_name", "test_unit", "test_description", 100, std::chrono::milliseconds(2000));
-        auto metric = subject.create_metric(RATE::KIND, UINT::KIND, target, 2.0, "b_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
+        auto metric = subject.create_metric(RATE::KIND, UINT::KIND, target, "b_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
 
         EXPECT_EQ(metric->kind(), Metric::Kind::RATE);
         EXPECT_EQ(metric->name(), "b_test_name");
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_EQ(metric->multiplier(), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -87,14 +87,14 @@ namespace measuro
         std::chrono::steady_clock::time_point dummy_clock;
         Registry subject([&dummy_clock]{return dummy_clock;});
         auto target = subject.create_metric(INT::KIND, "a_test_name", "test_unit", "test_description", -100, std::chrono::milliseconds(2000));
-        auto metric = subject.create_metric(RATE::KIND, INT::KIND, target, 2.0, "b_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
+        auto metric = subject.create_metric(RATE::KIND, INT::KIND, target, "b_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
 
         EXPECT_EQ(metric->kind(), Metric::Kind::RATE);
         EXPECT_EQ(metric->name(), "b_test_name");
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_EQ(metric->multiplier(), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -106,14 +106,14 @@ namespace measuro
         std::chrono::steady_clock::time_point dummy_clock;
         Registry subject([&dummy_clock]{return dummy_clock;});
         auto target = subject.create_metric(FLOAT::KIND, "a_test_name", "test_unit", "test_description", 55.75, std::chrono::milliseconds(2000));
-        auto metric = subject.create_metric(RATE::KIND, FLOAT::KIND, target, 2.0, "b_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
+        auto metric = subject.create_metric(RATE::KIND, FLOAT::KIND, target, "b_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
 
         EXPECT_EQ(metric->kind(), Metric::Kind::RATE);
         EXPECT_EQ(metric->name(), "b_test_name");
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_EQ(metric->multiplier(), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -127,14 +127,14 @@ namespace measuro
         auto target1 = subject.create_metric(UINT::KIND, "a_test_name", "test_unit", "test_description", 100, std::chrono::milliseconds(2000));
         auto target2 = subject.create_metric(UINT::KIND, "b_test_name", "test_unit", "test_description", 100, std::chrono::milliseconds(2000));
         auto target3 = subject.create_metric(SUM::KIND, UINT::KIND, "c_test_name", "test_unit", "test_description", {target1, target2}, std::chrono::milliseconds(2000));
-        auto metric = subject.create_metric(RATE::KIND, SUM::KIND, UINT::KIND, target3, 2.0, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
+        auto metric = subject.create_metric(RATE::KIND, SUM::KIND, UINT::KIND, target3, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
 
         EXPECT_EQ(metric->kind(), Metric::Kind::RATE);
         EXPECT_EQ(metric->name(), "d_test_name");
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_EQ(metric->multiplier(), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -148,14 +148,14 @@ namespace measuro
         auto target1 = subject.create_metric(INT::KIND, "a_test_name", "test_unit", "test_description", -100, std::chrono::milliseconds(2000));
         auto target2 = subject.create_metric(INT::KIND, "b_test_name", "test_unit", "test_description", -100, std::chrono::milliseconds(2000));
         auto target3 = subject.create_metric(SUM::KIND, INT::KIND, "c_test_name", "test_unit", "test_description", {target1, target2}, std::chrono::milliseconds(2000));
-        auto metric = subject.create_metric(RATE::KIND, SUM::KIND, INT::KIND, target3, 2.0, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
+        auto metric = subject.create_metric(RATE::KIND, SUM::KIND, INT::KIND, target3, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
 
         EXPECT_EQ(metric->kind(), Metric::Kind::RATE);
         EXPECT_EQ(metric->name(), "d_test_name");
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_EQ(metric->multiplier(), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -169,14 +169,14 @@ namespace measuro
         auto target1 = subject.create_metric(FLOAT::KIND, "a_test_name", "test_unit", "test_description", 100.75, std::chrono::milliseconds(2000));
         auto target2 = subject.create_metric(FLOAT::KIND, "b_test_name", "test_unit", "test_description", 100.75, std::chrono::milliseconds(2000));
         auto target3 = subject.create_metric(SUM::KIND, FLOAT::KIND, "c_test_name", "test_unit", "test_description", {target1, target2}, std::chrono::milliseconds(2000));
-        auto metric = subject.create_metric(RATE::KIND, SUM::KIND, FLOAT::KIND, target3, 2.0, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
+        auto metric = subject.create_metric(RATE::KIND, SUM::KIND, FLOAT::KIND, target3, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
 
         EXPECT_EQ(metric->kind(), Metric::Kind::RATE);
         EXPECT_EQ(metric->name(), "d_test_name");
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_EQ(metric->multiplier(), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -249,8 +249,8 @@ namespace measuro
         Registry subject([&dummy_clock]{return dummy_clock;});
         auto target1 = subject.create_metric(UINT::KIND, "a_test_name", "test_unit", "test_description", 100, std::chrono::milliseconds(2000));
         auto target2 = subject.create_metric(UINT::KIND, "b_test_name", "test_unit", "test_description", 100, std::chrono::milliseconds(2000));
-        auto target3 = subject.create_metric(RATE::KIND, UINT::KIND, target1, 2.0, "c_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
-        auto target4 = subject.create_metric(RATE::KIND, UINT::KIND, target2, 2.0, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
+        auto target3 = subject.create_metric(RATE::KIND, UINT::KIND, target1, "c_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
+        auto target4 = subject.create_metric(RATE::KIND, UINT::KIND, target2, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
         auto metric = subject.create_metric(SUM::KIND, RATE::KIND, UINT::KIND, "e_test_name", "test_unit", "test_description", {target3, target4}, std::chrono::milliseconds(2000));
 
         EXPECT_EQ(metric->kind(), Metric::Kind::SUM);
@@ -271,8 +271,8 @@ namespace measuro
         Registry subject([&dummy_clock]{return dummy_clock;});
         auto target1 = subject.create_metric(INT::KIND, "a_test_name", "test_unit", "test_description", -100, std::chrono::milliseconds(2000));
         auto target2 = subject.create_metric(INT::KIND, "b_test_name", "test_unit", "test_description", 300, std::chrono::milliseconds(2000));
-        auto target3 = subject.create_metric(RATE::KIND, INT::KIND, target1, 2.0, "c_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
-        auto target4 = subject.create_metric(RATE::KIND, INT::KIND, target2, 2.0, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
+        auto target3 = subject.create_metric(RATE::KIND, INT::KIND, target1, "c_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
+        auto target4 = subject.create_metric(RATE::KIND, INT::KIND, target2, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
         auto metric = subject.create_metric(SUM::KIND, RATE::KIND, INT::KIND, "e_test_name", "test_unit", "test_description", {target3, target4}, std::chrono::milliseconds(2000));
 
         EXPECT_EQ(metric->kind(), Metric::Kind::SUM);
@@ -293,8 +293,8 @@ namespace measuro
         Registry subject([&dummy_clock]{return dummy_clock;});
         auto target1 = subject.create_metric(FLOAT::KIND, "a_test_name", "test_unit", "test_description", 1.75, std::chrono::milliseconds(2000));
         auto target2 = subject.create_metric(FLOAT::KIND, "b_test_name", "test_unit", "test_description", 2.5, std::chrono::milliseconds(2000));
-        auto target3 = subject.create_metric(RATE::KIND, FLOAT::KIND, target1, 2.0, "c_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
-        auto target4 = subject.create_metric(RATE::KIND, FLOAT::KIND, target2, 2.0, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000));
+        auto target3 = subject.create_metric(RATE::KIND, FLOAT::KIND, target1, "c_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
+        auto target4 = subject.create_metric(RATE::KIND, FLOAT::KIND, target2, "d_test_name", "test_unit", "test_description", std::chrono::milliseconds(2000), [](float val){return val*2;});
         auto metric = subject.create_metric(SUM::KIND, RATE::KIND, FLOAT::KIND, "e_test_name", "test_unit", "test_description", {target3, target4}, std::chrono::milliseconds(2000));
 
         EXPECT_EQ(metric->kind(), Metric::Kind::SUM);

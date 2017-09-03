@@ -101,7 +101,7 @@ namespace measuro
         StubTimeFunction sub_time_f({0, 5000, 5000});
 
         std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > target = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_name", "bps", "test desc", tgt_time_f, 1);
-        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(target, 2, "test_rate", "test_unit", "test desc", sub_time_f);
+        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(target, [](float val){return val*2;}, "test_rate", "test_unit", "test desc", sub_time_f);
 
         (*target) = 0; // Baseline the clock
 

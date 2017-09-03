@@ -12,8 +12,10 @@ namespace measuro
         StubTimeFunction sub_time_f({0, 5000, 5000, 2500, 2500, 500});
 
         std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > target = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_name", "bps", "test desc", tgt_time_f, 1);
-        RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, 2, "test_rate", "test_unit", "test desc", sub_time_f);
+        RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, [](float val){return val*2;}, "test_rate", "test_unit", "test desc", sub_time_f);
         EXPECT_EQ(subject.kind(), Metric::Kind::RATE);
+
+        EXPECT_FLOAT_EQ(subject.proxy_test(1.5), 3.0);
 
         (*target) = 0; // Baseline the clock
 
@@ -34,6 +36,66 @@ namespace measuro
         EXPECT_EQ(std::string(subject), "24.00");
     }
 
+    TEST(RateMetric, no_proxy_implicit)
+    {
+        StubTimeFunction tgt_time_f({0, 5000, 5000, 2500, 2500, 500});
+        StubTimeFunction sub_time_f({0, 5000, 5000, 2500, 2500, 500});
+
+        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > target = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_name", "bps", "test desc", tgt_time_f, 1);
+        RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, "test_rate", "test_unit", "test desc", sub_time_f);
+        EXPECT_EQ(subject.kind(), Metric::Kind::RATE);
+
+        EXPECT_FLOAT_EQ(subject.proxy_test(1.5), 1.5);
+
+        (*target) = 0; // Baseline the clock
+
+        (*target) = 1000;
+        EXPECT_FLOAT_EQ(float(subject), 200);
+        EXPECT_EQ(std::string(subject), "200.00");
+
+        (*target) = 1500;
+        EXPECT_FLOAT_EQ(float(subject), 200);
+        EXPECT_EQ(std::string(subject), "200.00");
+
+        (*target) = 1512;
+        EXPECT_FLOAT_EQ(float(subject), 4.8f);
+        EXPECT_EQ(std::string(subject), "4.80");
+
+        (*target) = 1518;
+        EXPECT_FLOAT_EQ(float(subject), 12);
+        EXPECT_EQ(std::string(subject), "12.00");
+    }
+
+    TEST(RateMetric, no_proxy_explicit)
+    {
+        StubTimeFunction tgt_time_f({0, 5000, 5000, 2500, 2500, 500});
+        StubTimeFunction sub_time_f({0, 5000, 5000, 2500, 2500, 500});
+
+        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > target = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_name", "bps", "test desc", tgt_time_f, 1);
+        RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, nullptr, "test_rate", "test_unit", "test desc", sub_time_f);
+        EXPECT_EQ(subject.kind(), Metric::Kind::RATE);
+
+        EXPECT_FLOAT_EQ(subject.proxy_test(1.5), 1.5);
+
+        (*target) = 0; // Baseline the clock
+
+        (*target) = 1000;
+        EXPECT_FLOAT_EQ(float(subject), 200);
+        EXPECT_EQ(std::string(subject), "200.00");
+
+        (*target) = 1500;
+        EXPECT_FLOAT_EQ(float(subject), 200);
+        EXPECT_EQ(std::string(subject), "200.00");
+
+        (*target) = 1512;
+        EXPECT_FLOAT_EQ(float(subject), 4.8f);
+        EXPECT_EQ(std::string(subject), "4.80");
+
+        (*target) = 1518;
+        EXPECT_FLOAT_EQ(float(subject), 12);
+        EXPECT_EQ(std::string(subject), "12.00");
+    }
+
     TEST(RateMetric, rate_limiter)
     {
         StubTimeFunction tgt_time_f({500, 500, 500, 500, 500, 500, 500});
@@ -41,7 +103,10 @@ namespace measuro
 
         std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > target = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_name", "bps", "test desc", tgt_time_f, 0,
                 std::chrono::milliseconds(1000));
-        RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, 2, "test_rate", "test_unit", "test desc", sub_time_f);
+        RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, [](float val){return val*2;}, "test_rate", "test_unit", "test desc", sub_time_f);
+        EXPECT_EQ(subject.kind(), Metric::Kind::RATE);
+
+        EXPECT_FLOAT_EQ(subject.proxy_test(1.5), 3.0);
 
         (*target) = 0; // Baseline the clock
         (*target) = 0; // Baseline the clock
