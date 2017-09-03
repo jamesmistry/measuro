@@ -15,7 +15,7 @@ namespace measuro
         RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, [](float val){return val*2;}, "test_rate", "test_unit", "test desc", sub_time_f);
         EXPECT_EQ(subject.kind(), Metric::Kind::RATE);
 
-        EXPECT_FLOAT_EQ(subject.proxy_test(1.5), 3.0);
+        EXPECT_FLOAT_EQ(subject.proxy_value(1.5), 3.0);
 
         (*target) = 0; // Baseline the clock
 
@@ -45,7 +45,7 @@ namespace measuro
         RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, "test_rate", "test_unit", "test desc", sub_time_f);
         EXPECT_EQ(subject.kind(), Metric::Kind::RATE);
 
-        EXPECT_FLOAT_EQ(subject.proxy_test(1.5), 1.5);
+        EXPECT_FLOAT_EQ(subject.proxy_value(1.5), 1.5);
 
         (*target) = 0; // Baseline the clock
 
@@ -75,7 +75,7 @@ namespace measuro
         RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, nullptr, "test_rate", "test_unit", "test desc", sub_time_f);
         EXPECT_EQ(subject.kind(), Metric::Kind::RATE);
 
-        EXPECT_FLOAT_EQ(subject.proxy_test(1.5), 1.5);
+        EXPECT_FLOAT_EQ(subject.proxy_value(1.5), 1.5);
 
         (*target) = 0; // Baseline the clock
 
@@ -106,7 +106,7 @@ namespace measuro
         RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > subject(target, [](float val){return val*2;}, "test_rate", "test_unit", "test desc", sub_time_f);
         EXPECT_EQ(subject.kind(), Metric::Kind::RATE);
 
-        EXPECT_FLOAT_EQ(subject.proxy_test(1.5), 3.0);
+        EXPECT_FLOAT_EQ(subject.proxy_value(1.5), 3.0);
 
         (*target) = 0; // Baseline the clock
         (*target) = 0; // Baseline the clock

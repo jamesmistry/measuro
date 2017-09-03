@@ -75,7 +75,7 @@ namespace measuro
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_value(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -94,7 +94,7 @@ namespace measuro
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_value(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -113,7 +113,7 @@ namespace measuro
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_value(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -134,7 +134,7 @@ namespace measuro
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_value(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -155,7 +155,7 @@ namespace measuro
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_value(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);
@@ -176,7 +176,7 @@ namespace measuro
         EXPECT_EQ(metric->unit(), "test_unit");
         EXPECT_EQ(metric->description(), "test_description");
         EXPECT_EQ(metric->cascade_rate_limit(), std::chrono::milliseconds(2000));
-        EXPECT_FLOAT_EQ(metric->proxy_test(1.0), 2.0);
+        EXPECT_FLOAT_EQ(metric->proxy_value(1.0), 2.0);
 
         StubRenderer rndr;
         subject.render(rndr);

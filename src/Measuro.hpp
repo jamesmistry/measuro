@@ -450,7 +450,7 @@ namespace measuro
             return m_value;
         }
 
-        float proxy_test(float val) const
+        float proxy_value(float val) const
         {
             return ((m_result_proxy) ? m_result_proxy(val) : val);
         }
@@ -466,7 +466,7 @@ namespace measuro
                 if (time_elapsed != 0.0) // Avoid div by zero
                 {
                     float value = ((distance_travelled - m_last_distance) / time_elapsed);
-                    m_value = ((m_result_proxy) ? m_result_proxy(value) : value);
+                    m_value = proxy_value(value);
                 }
 
                 m_last_distance = distance_travelled;
