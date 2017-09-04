@@ -13,5 +13,5 @@ Testing
 *.rpm
 *.swp
 _CPack_Packages
-test/unit/measuro_unit_testexe
+*_testexe
 /Debug
