@@ -43,6 +43,7 @@
 #include <type_traits>
 #include <cmath>
 #include <iostream>
+#include <iomanip>
 #include <thread>
 #include <condition_variable>
 
@@ -236,8 +237,6 @@ namespace measuro
 
         void update(std::function<void()> update_logic) noexcept(false)
         {
-            auto now = m_time_function();
-
             /*
              * update_logic() must always be called outside an m_metric_mutex critical
              * section so that the hook logic is free to acquire the mutex if it needs
@@ -245,18 +244,22 @@ namespace measuro
              */
             update_logic();
 
-            if ((m_has_hooks) && ((m_cascade_limit == std::chrono::milliseconds::zero()) ||
-                    (now - m_last_hook_update.load()) >= m_cascade_limit))
+            if (m_has_hooks)
             {
-                // TODO: Replace with std::scoped_lock on migration to C++17
-                std::lock_guard<std::mutex> lock(m_metric_mutex);
-
-                for (auto hook : m_hooks)
+                auto now = m_time_function();
+                if (((m_cascade_limit == std::chrono::milliseconds::zero()) ||
+                        (now - m_last_hook_update.load()) >= m_cascade_limit))
                 {
-                    hook(now);
-                }
+                    // TODO: Replace with std::scoped_lock on migration to C++17
+                    std::lock_guard<std::mutex> lock(m_metric_mutex);
 
-                m_last_hook_update = now;
+                    for (auto hook : m_hooks)
+                    {
+                        hook(now);
+                    }
+
+                    m_last_hook_update = now;
+                }
             }
         }
 
