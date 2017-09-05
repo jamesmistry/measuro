@@ -1,3 +1,11 @@
+/*
+ * The purpose of this test is to produce a simple score for use in measuring the effect of Measuro code
+ * changes on performance. The score produced is between 0 and 1, representing how much work was done with
+ * Measuro enabled as a proportion of the work done with Measuro disabled.
+ *
+ * Note that scores should only be compared when calculated on the same hardware/OS/environment.
+ */
+
 #include <cstddef>
 #include <chrono>
 #include <string>
@@ -118,13 +126,21 @@ int main(int argc, char * argv[])
     float score = 0.0f;
     if ((no_metrics_test_count > 0) && (metrics_test_count > 0))
     {
-        score = float(float(no_metrics_test_count) / float(metrics_test_count));
+        score = 1 - (float(float(no_metrics_test_count) / float(metrics_test_count)) - 1);
+        if (score < 0)
+        {
+            score = 0.0f;
+        }
+        else if (score > 1)
+        {
+            score = 1.0f;
+        }
     }
 
     std::cout << "Work items, without metrics = " << no_metrics_test_count << "\n";
     std::cout << "Work items, with metrics = " << metrics_test_count << "\n";
     std::cout << "Score = " << score << "\n";
-    std::cout << "        (closer to 1.0 is better)" << std::endl;
+    std::cout << "        ^ (closer to 1.0 is better)" << std::endl;
 
     return 0;
 }

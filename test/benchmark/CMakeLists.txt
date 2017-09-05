@@ -8,4 +8,3 @@ file(GLOB test_src *.cpp)
 
 add_executable(measuro_benchmark_testexe ${test_src})
 
-add_test(measuro_benchmark_test ${CMAKE_CURRENT_SOURCE_DIR}/measuro_benchmark_testexe)
