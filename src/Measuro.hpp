@@ -59,7 +59,7 @@ namespace measuro
         {
         }
 
-        virtual ~MeasuroError()
+        virtual ~MeasuroError() noexcept
         {
         }
     };
@@ -129,7 +129,7 @@ namespace measuro
 
         Metric(const Kind kind, const std::string & name, const std::string & unit, const std::string & description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : m_kind(kind), m_name(name), m_unit(unit), m_description(description),
           m_last_hook_update(time_function()), m_time_function(time_function), m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
         {
@@ -137,7 +137,7 @@ namespace measuro
 
         Metric(const Kind kind, const char * name, const char * unit, const char * description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : m_kind(kind), m_name(name), m_unit(unit), m_description(description),
           m_last_hook_update(time_function()), m_time_function(time_function), m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
         {
@@ -145,7 +145,7 @@ namespace measuro
 
         Metric(const Kind kind, const std::string & name, const std::string & description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : m_kind(kind), m_name(name), m_description(description),
           m_last_hook_update(time_function()), m_time_function(time_function), m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
         {
@@ -153,13 +153,13 @@ namespace measuro
 
         Metric(const Kind kind, const char * name, const char * description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : m_kind(kind), m_name(name), m_description(description), m_last_hook_update(time_function()), m_time_function(time_function),
           m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
         {
         }
 
-        virtual ~Metric()
+        virtual ~Metric() noexcept
         {
         }
 
@@ -213,7 +213,7 @@ namespace measuro
 
         virtual operator std::string() const = 0;
 
-        void register_hook(std::function<void (std::chrono::steady_clock::time_point update_time)> registrant)
+        void register_hook(std::function<void (std::chrono::steady_clock::time_point update_time)> registrant) noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_metric_mutex);
@@ -290,13 +290,13 @@ namespace measuro
     {
     public:
         NumberMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const T initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+                const T initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(K, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
 
         NumberMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const T initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+                const T initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(K, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
@@ -410,7 +410,7 @@ namespace measuro
     {
     public:
         RateMetric(std::shared_ptr<D> & distance, std::function<float (float)> result_proxy, const std::string & name, const std::string & unit, const std::string & description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_result_proxy(result_proxy),
           m_last_distance(0), m_value(0.0f)
         {
@@ -418,7 +418,7 @@ namespace measuro
         }
 
         RateMetric(std::shared_ptr<D> & distance, std::function<float (float)> result_proxy, const char * name, const char * unit, const char * description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_result_proxy(result_proxy),
           m_last_distance(0), m_value(0.0f)
         {
@@ -426,14 +426,14 @@ namespace measuro
         }
 
         RateMetric(std::shared_ptr<D> & distance, const std::string & name, const std::string & unit, const std::string & description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_last_distance(0), m_value(0.0f)
         {
             m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
         }
 
         RateMetric(std::shared_ptr<D> & distance, const char * name, const char * unit, const char * description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_last_distance(0), m_value(0.0f)
         {
             m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
@@ -462,7 +462,7 @@ namespace measuro
         }
 
     private:
-        void hook_handler(const std::chrono::steady_clock::time_point update_time) override final
+        void hook_handler(const std::chrono::steady_clock::time_point update_time) noexcept(false) override final
         {
             update([this, & update_time]()
             {
@@ -493,7 +493,7 @@ namespace measuro
     {
     public:
         SumMetric(std::initializer_list<std::shared_ptr<D> > targets, const std::string & name, const std::string & unit, const std::string & description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
         {
             for (auto target : targets)
@@ -503,13 +503,13 @@ namespace measuro
         }
 
         SumMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
         {
         }
 
         SumMetric(std::initializer_list<std::shared_ptr<D> > targets, const char * name, const char * unit, const char * description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
         {
             for (auto target : targets)
@@ -519,7 +519,7 @@ namespace measuro
         }
 
         SumMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
         {
         }
@@ -529,7 +529,7 @@ namespace measuro
         SumMetric & operator=(const SumMetric &) = delete;
         SumMetric & operator=(SumMetric &&) = delete;
 
-        void add_target(std::shared_ptr<D> & target)
+        void add_target(std::shared_ptr<D> & target) noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_metric_mutex);
@@ -562,7 +562,7 @@ namespace measuro
             return formatter.str();
         }
 
-        std::size_t target_count() const
+        std::size_t target_count() const noexcept
         {
             return m_targets.size();
         }
@@ -576,13 +576,13 @@ namespace measuro
     {
     public:
         StringMetric(const std::string & name, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::string & initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+                const std::string & initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::STR, name, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
 
         StringMetric(const char * name, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const char * initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+                const char * initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::STR, name, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
@@ -631,14 +631,16 @@ namespace measuro
     {
     public:
         BoolMetric(const std::string & name, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE", const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+                const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::BOOL, name, description, time_function, cascade_rate_limit), m_value(initial_value), m_true_rep(true_rep),
           m_false_rep(false_rep)
         {
         }
 
         BoolMetric(const char * name, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE", const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero())
+                const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
+                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::BOOL, name, description, time_function, cascade_rate_limit), m_value(initial_value), m_true_rep(true_rep),
           m_false_rep(false_rep)
         {
@@ -666,7 +668,7 @@ namespace measuro
             return m_value;
         }
 
-        void operator=(bool rhs) noexcept(false)
+        void operator=(bool rhs) noexcept
         {
             update([this, rhs]()
             {
@@ -674,7 +676,7 @@ namespace measuro
             });
         }
 
-        bool operator!() noexcept(false)
+        bool operator!() noexcept
         {
             return !m_value;
         }
@@ -693,7 +695,7 @@ namespace measuro
         {
         }
 
-        virtual ~Renderer()
+        virtual ~Renderer() noexcept
         {
         }
 
@@ -731,11 +733,11 @@ namespace measuro
     class PlainRenderer : public Renderer
     {
     public:
-        PlainRenderer(std::ostream & destination) : m_destination(destination)
+        PlainRenderer(std::ostream & destination) noexcept : m_destination(destination)
         {
         }
 
-        virtual ~PlainRenderer()
+        virtual ~PlainRenderer() noexcept
         {
         }
 
@@ -772,7 +774,7 @@ namespace measuro
          *
          * @param[in]   data    Contents of the string literal
          */
-        explicit JsonStringLiteral(const std::string & data)
+        explicit JsonStringLiteral(const std::string & data) noexcept(false)
         {
             literalise(data, m_result);
         }
@@ -782,7 +784,7 @@ namespace measuro
          *
          * @param[in]   data    Contents of the string literal
          */
-        explicit JsonStringLiteral(const char * data)
+        explicit JsonStringLiteral(const char * data) noexcept(false)
         {
             std::string strData(data);
 
@@ -790,12 +792,12 @@ namespace measuro
         }
 
         JsonStringLiteral(const JsonStringLiteral & rhs) = default;
-        JsonStringLiteral(JsonStringLiteral && rhs) : m_result(std::move(rhs.m_result))
+        JsonStringLiteral(JsonStringLiteral && rhs) noexcept(false) : m_result(std::move(rhs.m_result))
         {
         }
 
         JsonStringLiteral & operator=(JsonStringLiteral & rhs) = default;
-        JsonStringLiteral & operator=(JsonStringLiteral && rhs)
+        JsonStringLiteral & operator=(JsonStringLiteral && rhs) noexcept(false)
         {
             if (this != &rhs)
             {
@@ -811,7 +813,7 @@ namespace measuro
          * including leading and terminating double quotes, and appropriately escaped
          * source characters.
          */
-        operator const char * () const
+        operator const char * () const noexcept
         {
             return m_result.c_str();
         }
@@ -824,7 +826,7 @@ namespace measuro
          * @param[in]   in  The string from which to create a JSON string literal
          * @param[out]  out The result
          */
-        void literalise(const std::string & in, std::string & out) const
+        void literalise(const std::string & in, std::string & out) const noexcept(false)
         {
             out.push_back('"');
 
@@ -887,7 +889,7 @@ namespace measuro
          * @param[in]   c   The character to escape
          * @param[out]  out The string to which the escaped character will be appended
          */
-        void escape_as_hex(char c, std::string & out) const
+        void escape_as_hex(char c, std::string & out) const noexcept
         {
             std::stringstream formatter;
 
@@ -903,11 +905,11 @@ namespace measuro
     class JsonRenderer : public Renderer
     {
     public:
-        JsonRenderer(std::ostream & destination) : m_destination(destination), m_count(0)
+        JsonRenderer(std::ostream & destination) noexcept : m_destination(destination), m_count(0)
         {
         }
 
-        virtual ~JsonRenderer()
+        virtual ~JsonRenderer() noexcept
         {
         }
 
@@ -988,12 +990,12 @@ namespace measuro
         class RenderSchedule
         {
         public:
-            RenderSchedule(Registry & registry, Renderer & renderer, const std::chrono::seconds interval)
+            RenderSchedule(Registry & registry, Renderer & renderer, const std::chrono::seconds interval) noexcept(false)
             : m_registry(registry), m_renderer(renderer), m_stop(false), m_interval(interval), m_executor(std::bind(&RenderSchedule::executor_logic, this))
             {
             }
 
-            ~RenderSchedule()
+            ~RenderSchedule() noexcept
             {
                 try
                 {
@@ -1004,7 +1006,7 @@ namespace measuro
                 }
             }
 
-            void stop()
+            void stop() noexcept(false)
             {
                 m_stop = true;
                 m_stop_cond.notify_one();
@@ -1012,7 +1014,7 @@ namespace measuro
             }
 
         private:
-            void executor_logic()
+            void executor_logic() noexcept(false)
             {
                 do
                 {
@@ -1288,14 +1290,14 @@ namespace measuro
             }
         }
 
-        void cancel_render_schedule()
+        void cancel_render_schedule() noexcept(false)
         {
             std::lock_guard<std::mutex> lock(m_registry_mutex);
 
             m_sched = nullptr;
         }
 
-        void render_schedule(Renderer & renderer, const std::chrono::seconds interval)
+        void render_schedule(Renderer & renderer, const std::chrono::seconds interval) noexcept(false)
         {
             std::lock_guard<std::mutex> lock(m_registry_mutex);
 
@@ -1304,7 +1306,7 @@ namespace measuro
 
     private:
         template<typename M, typename T>
-        void initialise_sum_with_targets(M metric, const std::initializer_list<T> targets) const
+        void initialise_sum_with_targets(M metric, const std::initializer_list<T> targets) const noexcept(false)
         {
             for (auto target : targets)
             {
@@ -1331,13 +1333,13 @@ namespace measuro
         class RendererContext
         {
         public:
-            RendererContext(Renderer & renderer) : m_renderer(renderer)
+            RendererContext(Renderer & renderer) noexcept(false) : m_renderer(renderer)
             {
                 m_renderer.suppressed_exception(false);
                 m_renderer.before();
             }
 
-            ~RendererContext()
+            ~RendererContext() noexcept
             {
                 // Prevent exceptions in Renderer::after() from leaving the destructor
                 try
