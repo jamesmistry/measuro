@@ -600,7 +600,18 @@ namespace measuro
             return m_value;
         }
 
-        void operator=(std::string rhs) noexcept(false)
+        void operator=(const char * rhs) noexcept(false)
+        {
+            update([this, rhs]()
+            {
+                // TODO: Replace with std::scoped_lock on migration to C++17
+                std::lock_guard<std::mutex> lock(m_metric_mutex);
+
+                m_value = std::string(rhs);
+            });
+        }
+
+        void operator=(const std::string & rhs) noexcept(false)
         {
             update([this, rhs]()
             {
