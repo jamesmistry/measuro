@@ -482,7 +482,7 @@ namespace measuro
 
         std::shared_ptr<D> m_distance;
         std::function<float (float)> m_result_proxy;
-        float m_last_distance;
+        std::atomic<float> m_last_distance;
         std::atomic<float> m_value;
         std::chrono::steady_clock::time_point m_last_hook_time;
 
