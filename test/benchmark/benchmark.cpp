@@ -3,7 +3,10 @@
  * changes on performance. The score produced is between 0 and 1, representing how much work was done with
  * Measuro enabled as a proportion of the work done with Measuro disabled.
  *
- * Note that scores should only be compared when calculated on the same hardware/OS/environment.
+ * Note that this test represents worst-case performance, with no attempt even at trivial optimisation (such
+ * as use of Throttle objects or deferred update of metrics).
+ *
+ * Scores should only be compared when calculated on the same hardware/OS/environment.
  */
 
 #include <cstddef>
@@ -93,10 +96,7 @@ std::int64_t hard_work(bool use_metrics, Metrics & m)
 
         if (use_metrics)
         {
-            if (candidate % 10000 == 0)
-            {
-                (*m.test_count) = candidate + 1;
-            }
+            (*m.test_count) = candidate + 1;
         }
 
         ++candidate;
