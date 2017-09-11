@@ -405,6 +405,54 @@ namespace measuro
 
     };
 
+    template<>
+    class NumberMetric<Metric::Kind::FLOAT, float> : public Metric, public DiscoverableNativeType<float>
+    {
+    public:
+        NumberMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+                const float initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::FLOAT, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
+        {
+        }
+
+        NumberMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
+                const float initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::FLOAT, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
+        {
+        }
+
+        NumberMetric(const NumberMetric &) = delete;
+        NumberMetric(NumberMetric &&) = delete;
+        NumberMetric & operator=(const NumberMetric &) = delete;
+        NumberMetric & operator=(NumberMetric &&) = delete;
+
+        operator std::string() const noexcept(false) override final
+        {
+            std::stringstream formatter;
+
+            formatter << std::fixed << std::setprecision(2) << m_value;
+
+            return formatter.str();
+        }
+
+        explicit operator float() const noexcept
+        {
+            return m_value;
+        }
+
+        void operator=(float rhs) noexcept(false)
+        {
+            update([this, rhs]()
+            {
+                m_value = rhs;
+            });
+        }
+
+    private:
+        std::atomic<float> m_value;
+
+    };
+
     template<typename D>
     class RateMetric : public Metric, public DiscoverableNativeType<float>
     {
@@ -686,6 +734,160 @@ namespace measuro
         const std::string m_true_rep;
         const std::string m_false_rep;
 
+    };
+
+    template<typename T>
+    class Throttle
+    {
+    public:
+        Throttle(std::shared_ptr<T> & metric, const std::chrono::milliseconds time_limit, const std::uint64_t op_limit = 1000,
+                std::function<std::chrono::steady_clock::time_point ()> time_function = []{return std::chrono::steady_clock::now();})
+        : m_metric(metric), m_rate_limit(time_limit), m_next_update(time_function() + time_limit), m_time_function(time_function),
+          m_op_limit(((op_limit == 0) ? 1 : op_limit)), m_op_count(0)
+        {
+        }
+
+        ~Throttle()
+        {
+        }
+
+        void operator=(const typename T::NativeType rhs) noexcept
+        {
+            if (check_update())
+            {
+                (*m_metric) = rhs;
+            }
+        }
+
+        Throttle<T> & operator*()
+        {
+            return (*this);
+        }
+
+    private:
+        inline bool check_update()
+        {
+            if (++m_op_count % m_op_limit == 0)
+            {
+                auto now = m_time_function();
+                if (now >= m_next_update)
+                {
+                    m_next_update = now + m_rate_limit;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        std::shared_ptr<T> m_metric;
+        const std::chrono::milliseconds m_rate_limit;
+        std::chrono::steady_clock::time_point m_next_update;
+        std::function<std::chrono::steady_clock::time_point ()> m_time_function;
+        const std::uint64_t m_op_limit;
+        std::uint64_t m_op_count;
+    };
+
+    template<Metric::Kind K, typename T>
+    class Throttle<NumberMetric<K, T> >
+    {
+    public:
+        Throttle(std::shared_ptr<NumberMetric<K, T> > & metric, const std::chrono::milliseconds time_limit, const std::uint64_t op_limit = 1000,
+                std::function<std::chrono::steady_clock::time_point ()> time_function = []{return std::chrono::steady_clock::now();})
+        : m_metric(metric), m_rate_limit(time_limit), m_next_update(time_function() + time_limit), m_time_function(time_function),
+          m_op_limit(((op_limit == 0) ? 1 : op_limit)), m_op_count(0), m_pending_val(0)
+        {
+        }
+
+        ~Throttle()
+        {
+        }
+
+        void operator=(const T & rhs) noexcept
+        {
+            if (check_update())
+            {
+                (*m_metric) = rhs;
+                m_pending_val = 0;
+            }
+        }
+
+        bool operator+=(const T & rhs) noexcept
+        {
+            m_pending_val += rhs;
+
+            if (check_update())
+            {
+                commit();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        bool operator++() noexcept
+        {
+            ++m_pending_val;
+
+            if (check_update())
+            {
+                commit();
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        Throttle<NumberMetric<K, T> > & operator*()
+        {
+            return (*this);
+        }
+
+        inline void commit()
+        {
+            (*m_metric) += m_pending_val;
+            m_pending_val = 0;
+        }
+
+    private:
+        inline bool check_update()
+        {
+            if (++m_op_count % m_op_limit == 0)
+            {
+                auto now = m_time_function();
+                if (now >= m_next_update)
+                {
+                    m_next_update = now + m_rate_limit;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        std::shared_ptr<NumberMetric<K, T> > m_metric;
+        const std::chrono::milliseconds m_rate_limit;
+        std::chrono::steady_clock::time_point m_next_update;
+        std::function<std::chrono::steady_clock::time_point ()> m_time_function;
+        const std::uint64_t m_op_limit;
+        std::uint64_t m_op_count;
+        T m_pending_val;
     };
 
     class Renderer
@@ -984,6 +1186,12 @@ namespace measuro
     using StringHandle = std::shared_ptr<StringMetric>;
     using BoolHandle = std::shared_ptr<BoolMetric>;
 
+    using UintThrottle = Throttle<NumberMetric<Metric::Kind::UINT, std::uint64_t> >;
+    using IntThrottle = Throttle<NumberMetric<Metric::Kind::INT, std::int64_t> >;
+    using FloatThrottle = Throttle<NumberMetric<Metric::Kind::FLOAT, float> >;
+    using StringThrottle = Throttle<StringMetric>;
+    using BoolThrottle = Throttle<BoolMetric>;
+
     class Registry
     {
     public:
@@ -1219,6 +1427,31 @@ namespace measuro
             auto metric = std::make_shared<BoolMetric>(name, description, m_time_function, initial_value, true_rep, false_rep, cascade_rate_limit);
             register_metric<BoolMetric>(name, metric, m_bool_metrics);
             return metric;
+        }
+
+        UintThrottle create_throttle(UintHandle & metric, const std::chrono::milliseconds rate_limit)
+        {
+            return UintThrottle(metric, rate_limit);
+        }
+
+        IntThrottle create_throttle(IntHandle & metric, const std::chrono::milliseconds rate_limit)
+        {
+            return IntThrottle(metric, rate_limit);
+        }
+
+        FloatThrottle create_throttle(FloatHandle & metric, const std::chrono::milliseconds rate_limit)
+        {
+            return FloatThrottle(metric, rate_limit);
+        }
+
+        StringThrottle create_throttle(StringHandle & metric, const std::chrono::milliseconds rate_limit)
+        {
+            return StringThrottle(metric, rate_limit);
+        }
+
+        BoolThrottle create_throttle(BoolHandle & metric, const std::chrono::milliseconds rate_limit)
+        {
+            return BoolThrottle(metric, rate_limit);
         }
 
         UintHandle operator()(const UINT, const std::string name) const noexcept(false)
