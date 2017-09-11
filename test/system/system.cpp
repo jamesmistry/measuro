@@ -7,6 +7,7 @@
 #include <functional>
 #include <memory>
 #include <gtest/gtest.h>
+#include <atomic>
 
 #include "Measuro.hpp"
 
@@ -14,6 +15,7 @@ using namespace measuro;
 
 const std::size_t NUM_CREATED_METRICS = 1000;
 const std::size_t NUM_THREADS = 2;
+std::atomic<unsigned int> barrier_count;
 
 struct Metrics
 {
@@ -51,6 +53,9 @@ void work_thread(Metrics & m, std::size_t thread_index)
 {
     std::stringstream thread_str;
     thread_str << "thread" << thread_index;
+
+    ++barrier_count;
+    while(barrier_count < NUM_THREADS);
 
     for (std::size_t i=0;i<NUM_CREATED_METRICS;++i)
     {
@@ -104,6 +109,8 @@ int main(int argc, char * argv[])
 
     std::vector<std::shared_ptr<std::thread> > threads;
 
+    barrier_count = 0;
+
     for (std::size_t i=0;i<NUM_THREADS;++i)
     {
         auto t = std::make_shared<std::thread>(&work_thread, std::ref(m), i);
@@ -115,7 +122,7 @@ int main(int argc, char * argv[])
         thread->join();
     }
 
-    EXPECT_EQ(std::int64_t(*m.reg(INT::KIND, "TestNum1")), 2000000);
+    EXPECT_EQ(std::int64_t(*m.reg(INT::KIND, "TestNum1")), NUM_THREADS * 1000000);
     EXPECT_EQ(float(*m.reg(FLOAT::KIND, "TestFloat")), 999999);
 
     return 0;
