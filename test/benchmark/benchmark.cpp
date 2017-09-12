@@ -74,10 +74,12 @@ bool is_prime(std::size_t n)
     return true;
 }
 
-std::int64_t hard_work(bool use_metrics, Metrics & m)
+std::int64_t hard_work(bool use_metrics, bool use_throttle, Metrics & m)
 {
     (*m.test_count) = 0;
     (*m.prime_count) = 0;
+
+    auto test_throttle = m.reg.create_throttle(m.test_count, std::chrono::milliseconds(1000), 1000);
 
     auto test_end = std::chrono::steady_clock::now() + TEST_DURATION;
     std::size_t candidate = 0;
@@ -96,7 +98,14 @@ std::int64_t hard_work(bool use_metrics, Metrics & m)
 
         if (use_metrics)
         {
-            (*m.test_count) = candidate + 1;
+            if (use_throttle)
+            {
+                test_throttle = candidate + 1;
+            }
+            else
+            {
+                (*m.test_count) = candidate + 1;
+            }
         }
 
         ++candidate;
@@ -112,18 +121,26 @@ int main(int argc, char * argv[])
     float no_metrics_test_count = 0;
     for (auto run=0;run<RUN_COUNT;++run)
     {
-        no_metrics_test_count += hard_work(false, m);
+        no_metrics_test_count += hard_work(false, false, m);
     }
     no_metrics_test_count /= RUN_COUNT;
 
     float metrics_test_count = 0;
     for (auto run=0;run<RUN_COUNT;++run)
     {
-        metrics_test_count += hard_work(true, m);
+        metrics_test_count += hard_work(true, false, m);
     }
     metrics_test_count /= RUN_COUNT;
 
+    float throttle_test_count = 0;
+    for (auto run=0;run<RUN_COUNT;++run)
+    {
+        throttle_test_count += hard_work(true, true, m);
+    }
+    throttle_test_count /= RUN_COUNT;
+
     float score = 0.0f;
+    float throttle_score = 0.0f;
     if ((no_metrics_test_count > 0) && (metrics_test_count > 0))
     {
         score = 1 - (float(float(no_metrics_test_count) / float(metrics_test_count)) - 1);
@@ -135,12 +152,24 @@ int main(int argc, char * argv[])
         {
             score = 1.0f;
         }
+
+        throttle_score = 1 - (float(float(no_metrics_test_count) / float(throttle_test_count)) - 1);
+        if (throttle_score < 0)
+        {
+            throttle_score = 0.0f;
+        }
+        else if (throttle_score > 1)
+        {
+            throttle_score = 1.0f;
+        }
     }
 
     std::cout << "Work items, without metrics = " << no_metrics_test_count << "\n";
-    std::cout << "Work items, with metrics = " << metrics_test_count << "\n";
-    std::cout << "Score = " << score << "\n";
-    std::cout << "        ^ (closer to 1.0 is better)" << std::endl;
+    std::cout << "Work items, with metrics    = " << metrics_test_count << "\n";
+    std::cout << "Score without throttle      = " << score << "\n";
+    std::cout << "                              ^ (closer to 1.0 is better)" << std::endl;
+    std::cout << "Score with throttle         = " << throttle_score << "\n";
+    std::cout << "                              ^ (closer to 1.0 is better)" << std::endl;
 
     return 0;
 }
