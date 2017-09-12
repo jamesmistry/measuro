@@ -471,4 +471,59 @@ namespace measuro
         std::this_thread::sleep_for(std::chrono::seconds(2));
         EXPECT_EQ(rndr.render_count(), 0);
     }
+
+    TEST(Registry, create_uint_throttle)
+    {
+        std::chrono::steady_clock::time_point dummy_clock;
+        Registry subject([&dummy_clock]{return dummy_clock;});
+        auto metric = subject.create_metric(UINT::KIND, "test_name", "test_unit", "test_description", 100, std::chrono::milliseconds(2000));
+        UintThrottle result = subject.create_throttle(metric, std::chrono::milliseconds(1234), 101);
+
+        EXPECT_EQ(result.time_limit(), std::chrono::milliseconds(1234));
+        EXPECT_EQ(result.op_limit(), 101);
+    }
+
+    TEST(Registry, create_int_throttle)
+    {
+        std::chrono::steady_clock::time_point dummy_clock;
+        Registry subject([&dummy_clock]{return dummy_clock;});
+        auto metric = subject.create_metric(INT::KIND, "test_name", "test_unit", "test_description", 100, std::chrono::milliseconds(2000));
+        IntThrottle result = subject.create_throttle(metric, std::chrono::milliseconds(1234), 101);
+
+        EXPECT_EQ(result.time_limit(), std::chrono::milliseconds(1234));
+        EXPECT_EQ(result.op_limit(), 101);
+    }
+
+    TEST(Registry, create_float_throttle)
+    {
+        std::chrono::steady_clock::time_point dummy_clock;
+        Registry subject([&dummy_clock]{return dummy_clock;});
+        auto metric = subject.create_metric(FLOAT::KIND, "test_name", "test_unit", "test_description", 100, std::chrono::milliseconds(2000));
+        FloatThrottle result = subject.create_throttle(metric, std::chrono::milliseconds(1234), 101);
+
+        EXPECT_EQ(result.time_limit(), std::chrono::milliseconds(1234));
+        EXPECT_EQ(result.op_limit(), 101);
+    }
+
+    TEST(Registry, create_str_throttle)
+    {
+        std::chrono::steady_clock::time_point dummy_clock;
+        Registry subject([&dummy_clock]{return dummy_clock;});
+        auto metric = subject.create_metric(STR::KIND, "test_name", "test_description", "val", std::chrono::milliseconds(2000));
+        StringThrottle result = subject.create_throttle(metric, std::chrono::milliseconds(1234), 101);
+
+        EXPECT_EQ(result.time_limit(), std::chrono::milliseconds(1234));
+        EXPECT_EQ(result.op_limit(), 101);
+    }
+
+    TEST(Registry, create_bool_throttle)
+    {
+        std::chrono::steady_clock::time_point dummy_clock;
+        Registry subject([&dummy_clock]{return dummy_clock;});
+        auto metric = subject.create_metric(BOOL::KIND, "test_name", "test_description", true, "yes", "no", std::chrono::milliseconds(2000));
+        BoolThrottle result = subject.create_throttle(metric, std::chrono::milliseconds(1234), 101);
+
+        EXPECT_EQ(result.time_limit(), std::chrono::milliseconds(1234));
+        EXPECT_EQ(result.op_limit(), 101);
+    }
 }
