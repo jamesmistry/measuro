@@ -1429,29 +1429,29 @@ namespace measuro
             return metric;
         }
 
-        UintThrottle create_throttle(UintHandle & metric, const std::chrono::milliseconds rate_limit)
+        UintThrottle create_throttle(UintHandle & metric, const std::chrono::milliseconds time_limit, std::uint64_t op_limit = 1)
         {
-            return UintThrottle(metric, rate_limit);
+            return UintThrottle(metric, time_limit, op_limit);
         }
 
-        IntThrottle create_throttle(IntHandle & metric, const std::chrono::milliseconds rate_limit)
+        IntThrottle create_throttle(IntHandle & metric, const std::chrono::milliseconds time_limit, std::uint64_t op_limit = 1)
         {
-            return IntThrottle(metric, rate_limit);
+            return IntThrottle(metric, time_limit, op_limit);
         }
 
-        FloatThrottle create_throttle(FloatHandle & metric, const std::chrono::milliseconds rate_limit)
+        FloatThrottle create_throttle(FloatHandle & metric, const std::chrono::milliseconds time_limit, std::uint64_t op_limit = 1)
         {
-            return FloatThrottle(metric, rate_limit);
+            return FloatThrottle(metric, time_limit, op_limit);
         }
 
-        StringThrottle create_throttle(StringHandle & metric, const std::chrono::milliseconds rate_limit)
+        StringThrottle create_throttle(StringHandle & metric, const std::chrono::milliseconds time_limit, std::uint64_t op_limit = 1)
         {
-            return StringThrottle(metric, rate_limit);
+            return StringThrottle(metric, time_limit, op_limit);
         }
 
-        BoolThrottle create_throttle(BoolHandle & metric, const std::chrono::milliseconds rate_limit)
+        BoolThrottle create_throttle(BoolHandle & metric, const std::chrono::milliseconds time_limit, std::uint64_t op_limit = 1)
         {
-            return BoolThrottle(metric, rate_limit);
+            return BoolThrottle(metric, time_limit, op_limit);
         }
 
         UintHandle operator()(const UINT, const std::string name) const noexcept(false)
