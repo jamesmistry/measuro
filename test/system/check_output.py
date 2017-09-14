@@ -21,7 +21,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-# Judges the output of the Measuro system test. Compatible with Python 2.6+ and
+# Judges the output of the Measuro system test. Compatible with Python 2.7+ and
 # Python 3.2+
 
 from __future__ import print_function
@@ -60,6 +60,19 @@ def validate_parsed_metrics(parsed):
     fail_test_if(len(parsed) != expected_key_count, "Expected {0} keys, found {1}".format(expected_key_count, len(parsed)))
 
 def main():
+    min_py_ver_2 = (2, 7)
+    min_py_ver_3 = (3, 2)
+
+    py_ver = sys.version_info
+
+    if py_ver[0] == 2:
+        if py_ver[1] > min_py_ver_2[1]:
+            fail_test("Require Python v2.7+ or Python v3.2+, but found {0}.{1}".format(py_ver[0], py_ver[1]))
+
+    if py_ver[1] == 3:
+        if py_ver[1] > min_py_ver_3[1]:
+            fail_test("Require Python v2.7+ or Python v3.2+, but found {0}.{1}".format(py_ver[0], py_ver[1]))
+
     if len(sys.argv) != 2:
         sys.exit(1)
 
