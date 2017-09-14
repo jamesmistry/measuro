@@ -6,8 +6,9 @@
 #include <exception>
 #include <functional>
 #include <memory>
-#include <gtest/gtest.h>
 #include <atomic>
+#include <vector>
+#include <iostream>
 
 #include "Measuro.hpp"
 
@@ -16,6 +17,28 @@ using namespace measuro;
 const std::size_t NUM_CREATED_METRICS = 1000;
 const std::size_t NUM_THREADS = 2;
 std::atomic<unsigned int> barrier_count;
+
+class Outputter : public JsonRenderer
+{
+public:
+    Outputter(std::stringstream & destination)
+    : JsonRenderer(destination), m_destination(destination)
+    {
+    }
+
+    virtual void after() noexcept(false) override
+    {
+        JsonRenderer::after();
+        m_records.push_back(m_destination.str());
+        m_destination.str("");
+    }
+
+    std::vector<std::string> m_records;
+
+private:
+    std::stringstream & m_destination;
+
+};
 
 struct Metrics
 {
@@ -28,6 +51,9 @@ struct Metrics
     BoolHandle test_bool;
     FloatHandle test_float;
     SumOfIntHandle test_sum;
+    UintThrottle test_num_3_throt;
+    std::stringstream render_out;
+    Outputter renderer;
 
     Metrics()
     : test_num_1(reg.create_metric(INT::KIND, "TestNum1", "integer(s)",
@@ -44,8 +70,12 @@ struct Metrics
               "TRUE", "FALSE", std::chrono::milliseconds::zero())),
       test_float(reg.create_metric(FLOAT::KIND, "TestFloat", "Test float metric", "floats",
               0.0f, std::chrono::milliseconds::zero())),
-      test_sum(reg.create_metric(SUM::KIND, INT::KIND, "TestSum", "numbers", "Test sum metric", {test_num_1, test_num_2}, std::chrono::milliseconds::zero()))
+      test_sum(reg.create_metric(SUM::KIND, INT::KIND, "TestSum", "numbers", "Test sum metric", {test_num_1, test_num_2}, std::chrono::milliseconds::zero())),
+      test_num_3_throt(reg.create_throttle(test_num_3, std::chrono::milliseconds(1000), 1000)),
+      renderer(render_out)
+
     {
+        reg.render_schedule(renderer, std::chrono::seconds(1));
     }
 };
 
@@ -60,7 +90,7 @@ void work_thread(Metrics & m, std::size_t thread_index)
     for (std::size_t i=0;i<NUM_CREATED_METRICS;++i)
     {
         /*
-         * Create some metrics.
+         * Create metrics.
          */
 
         std::stringstream name_prefix, description;
@@ -75,14 +105,16 @@ void work_thread(Metrics & m, std::size_t thread_index)
         m.reg.create_metric(RATE::KIND, SUM::KIND, INT::KIND, sum_metric, name_prefix.str() + "rate_sum_int", "integers", "Rate of test number 1", std::chrono::milliseconds::zero());
 
         /*
-         * Perform some lookups.
+         * Perform lookups.
          */
-        EXPECT_NO_THROW(EXPECT_EQ(m.reg(UINT::KIND, "TestNum3"), m.test_num_3));
-        EXPECT_NO_THROW(EXPECT_EQ(m.reg(INT::KIND, "TestNum1"), m.test_num_1));
-        EXPECT_NO_THROW(EXPECT_EQ(m.reg(STR::KIND, "TestStr"), m.test_str));
-        EXPECT_NO_THROW(EXPECT_EQ(m.reg(FLOAT::KIND, name_prefix.str() + "float"), float_metric));
-        EXPECT_NO_THROW(EXPECT_EQ(m.reg(BOOL::KIND, "TestBool"), m.test_bool));
+        assert(m.reg(UINT::KIND, "TestNum3") == m.test_num_3);
+        assert(m.reg(INT::KIND, "TestNum1") == m.test_num_1);
+        assert(m.reg(STR::KIND, "TestStr") == m.test_str);
+        assert(m.reg(FLOAT::KIND, name_prefix.str() + "float") == float_metric);
+        assert(m.reg(BOOL::KIND, "TestBool") == m.test_bool);
     }
+
+    std::this_thread::sleep_for (std::chrono::seconds(3 ));
 
     for (std::size_t i=0;i<1000000;++i)
     {
@@ -94,7 +126,11 @@ void work_thread(Metrics & m, std::size_t thread_index)
 
         auto test_float = m.reg(FLOAT::KIND, "TestFloat");
         (*test_float) = i;
+
+        ++m.test_num_3_throt;
     }
+
+    assert(std::uint64_t(*m.test_num_3) < NUM_THREADS * 999999);
 
     if (thread_index == 0)
     {
@@ -122,8 +158,13 @@ int main(int argc, char * argv[])
         thread->join();
     }
 
-    EXPECT_EQ(std::int64_t(*m.reg(INT::KIND, "TestNum1")), NUM_THREADS * 1000000);
-    EXPECT_EQ(float(*m.reg(FLOAT::KIND, "TestFloat")), 999999);
+    assert(std::int64_t(*m.reg(INT::KIND, "TestNum1")) == NUM_THREADS * 1000000);
+    assert(float(*m.reg(FLOAT::KIND, "TestFloat")) == 999999);
+
+    for (auto record : m.renderer.m_records)
+    {
+        std::cout << record << '\n';
+    }
 
     return 0;
 }

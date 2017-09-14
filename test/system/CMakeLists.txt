@@ -10,3 +10,6 @@ file(GLOB test_src *.cpp)
 add_executable(measuro_system_testexe ${test_src})
 
 target_link_libraries(measuro_system_testexe gtest pthread)
+
+add_test(measuro_system_test python ${CMAKE_CURRENT_SOURCE_DIR}/check_output.py ${CMAKE_CURRENT_SOURCE_DIR}/measuro_system_testexe)
+
