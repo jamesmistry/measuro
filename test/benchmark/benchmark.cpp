@@ -1,12 +1,37 @@
-/*
- * The purpose of this test is to produce a simple score for use in measuring the effect of Measuro code
- * changes on performance. The score produced is between 0 and 1, representing how much work was done with
- * Measuro enabled as a proportion of the work done with Measuro disabled.
+/** @file benchmark.cpp
  *
- * Note that this test represents worst-case performance, with no attempt even at trivial optimisation (such
- * as use of Throttle objects or deferred update of metrics).
+ * Copyright (c) 2017 James Mistry
  *
- * Scores should only be compared when calculated on the same hardware/OS/environment.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *
+ * The purpose of this test is to produce a simple score for use in measuring
+ * the effect of Measuro code changes on performance. The score produced is
+ * between 0 and 1, representing how much work was done with Measuro enabled as a
+ * proportion of the work done with Measuro disabled.
+ *
+ * Note that this test represents worst-case performance, with no attempt even at
+ * trivial optimisation (such as use of Throttle objects or deferred update of
+ * metrics).
+ *
+ * Scores should only be compared when calculated on the same
+ * hardware/OS/environment.
  */
 
 #include <cstddef>
