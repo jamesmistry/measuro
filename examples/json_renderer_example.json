@@ -1,0 +1,20 @@
+{
+    "example.finished": {
+        "description": "Example bool metric",
+        "kind": "BOOL",
+        "unit": "",
+        "value": "FALSE"
+    },
+    "example.line_count": {
+        "description": "Example unsigned integer metric",
+        "kind": "INT",
+        "unit": "line(s)",
+        "value": 1310
+    },
+    "example.process_rate": {
+        "description": "Rate of lines processed",
+        "kind": "RATE",
+        "unit": "lines/sec",
+        "value": 436.67
+    }
+}

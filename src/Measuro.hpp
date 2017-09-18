@@ -50,11 +50,24 @@
 namespace measuro
 {
 
-    static_assert(std::is_trivially_copyable<std::chrono::steady_clock::time_point>::value, "time_point must be trivially copyable (for use with std::atomic)");
+    static_assert(std::is_trivially_copyable<std::chrono::steady_clock::time_point>::value,
+            "time_point must be trivially copyable (for use with std::atomic)");
 
+    /*!
+     * @class MeasuroError
+     *
+     * @brief Measuro exception base class. All Measuro exceptions inherit from this class.
+     *
+     * @remarks thread-safe
+     */
     class MeasuroError : public std::runtime_error
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    description    Description of the error
+         */
         MeasuroError(const std::string description) : std::runtime_error(description.c_str())
         {
         }
@@ -64,28 +77,54 @@ namespace measuro
         }
     };
 
+    /*!
+     * @class MetricNameError
+     *
+     * @brief An exception describing runtime errors that occur because of a metric name that is in some way incompatible.
+     *
+     * @remarks thread-safe
+     */
     class MetricNameError : public MeasuroError
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    description    Description of the error
+         */
         MetricNameError(const std::string description) : MeasuroError(description)
         {
         }
     };
 
+    /*!
+     * @class MetricTypeError
+     *
+     * @brief An exception describing runtime errors that occur because of a metric type mismatch.
+     *
+     * @remarks thread-safe
+     */
     class MetricTypeError : public MeasuroError
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    description    Description of the error
+         */
         MetricTypeError(const std::string description) : MeasuroError(description)
         {
         }
     };
 
     /*!
+    * Retrieves the current Measuro version as integers.
     *
+    * @param[out]    major     Measuro major version
+    * @param[out]    minor     Measuro minor version
+    * @param[out]    release   Measuro release number
     *
-    * @param major
-    * @param minor
-    * @param release
+    * @remarks thread-safe
     */
     inline static void version(unsigned int & major, unsigned int & minor, unsigned int & release) noexcept
     {
@@ -95,38 +134,115 @@ namespace measuro
     }
 
     /*!
+    * Retrieves the current Measuro version as a string.
     *
+    * @param[out]    version_str    Measuro version string
     *
-    * @param version_str
+    * @remarks thread-safe
     */
     inline static void version_text(std::string & version_str) noexcept(false)
     {
         version_str = "@LIB_VERSION_MAJOR@.@LIB_VERSION_MINOR@-@LIB_VERSION_REL@";
     }
 
+    /*!
+     * Retrieves the current Measuro copyright string. Useful for inclusion in
+     * abbreviated attribution text.
+     *
+     * @param[out]    copyright_str    Measuro copyright string
+     *
+     * @remarks thread-safe
+     */
     inline static void copyright_text(std::string & copyright_str) noexcept(false)
     {
         copyright_str = "Measuro version @LIB_VERSION_MAJOR@.@LIB_VERSION_MINOR@-@LIB_VERSION_REL@\n\nCopyright (c) 2017, James Mistry. Released under the MIT licence - for details see https://github.com/jamesmistry/measuro";
     }
 
+    /*!
+     * @enum UINT
+     *
+     * Enum used to uniquely identify unsigned integer metric types in code.
+     * The actual value is UINT::KIND
+     */
     enum class UINT { KIND };
+
+    /*!
+     * @enum INT
+     *
+     * Enum used to uniquely identify signed integer metric types in code.
+     * The actual value is INT::KIND
+     */
     enum class INT { KIND };
+
+    /*!
+     * Enum used to uniquely identify floating point metric types in code.
+     * The actual value is FLOAT::KIND
+     */
     enum class FLOAT { KIND };
+
+    /*!
+     * @enum RATE
+     *
+     * Enum used to uniquely identify rate metric types in code. The actual
+     * value is RATE::KIND
+     */
     enum class RATE { KIND };
+
+    /*!
+     * @enum STR
+     *
+     * Enum used to uniquely identify string metric types in code. The actual
+     * value is STR::KIND
+     */
     enum class STR { KIND };
+
+    /*!
+     * @enum BOOL
+     *
+     * Enum used to uniquely identify boolean metric types in code. The actual
+     * value is BOOL::KIND
+     */
     enum class BOOL { KIND };
+
+    /*!
+     * @enum SUM
+     *
+     * Enum used to uniquely identify sum metric types in code. The actual
+     * value is SUM::KIND
+     */
     enum class SUM { KIND };
 
     /*!
      * @class Metric
      *
+     * @brief Base class of all metric classes.
      *
+     * Specifies an abstract interface for metric classes and provides a rate-
+     * limited hook mechanism for other metric objects to be invoked when
+     * a metric's underlying value changes.
+     *
+     * @remarks thread-safe
      */
     class Metric
     {
     public:
+        /*!
+         * @enum Kind
+         *
+         * The kind of metric as determined by the inheriting class.
+         */
         enum class Kind { UINT = 0, INT = 1, FLOAT = 2, RATE = 3, STR = 4, BOOL = 5, SUM = 6 };
 
+        /*!
+         * Constructor.
+         *
+         * @param[in]    kind                  The kind of the underlying metric
+         * @param[in]    name                  The name of the metric, as it will appear in rendered output
+         * @param[in]    unit                  The units of the metric's value
+         * @param[in]    description           A short description of what the metric measures, as it will appear in rendered output
+         * @param[in]    time_function         The function to use for determining the time. Used for simulation in testing
+         * @param[in]    cascade_rate_limit    The minimum number of milliseconds between invoking hooks registered by other metrics. Used to limit frequency of costly updates. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         */
         Metric(const Kind kind, const std::string & name, const std::string & unit, const std::string & description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
@@ -135,6 +251,11 @@ namespace measuro
         {
         }
 
+        /*!
+         * Constructor.
+         *
+         * @see Metric::Metric(const Kind, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
+         */
         Metric(const Kind kind, const char * name, const char * unit, const char * description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
@@ -143,6 +264,11 @@ namespace measuro
         {
         }
 
+        /*!
+         * Constructor.
+         *
+         * @see Metric::Metric(const Kind, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
+         */
         Metric(const Kind kind, const std::string & name, const std::string & description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
@@ -151,6 +277,11 @@ namespace measuro
         {
         }
 
+        /*!
+         * Constructor.
+         *
+         * @see Metric::Metric(const Kind, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
+         */
         Metric(const Kind kind, const char * name, const char * description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
@@ -159,35 +290,83 @@ namespace measuro
         {
         }
 
+        /*!
+         * Destructor.
+         */
         virtual ~Metric() noexcept
         {
         }
 
+        /*!
+         * Get the metric's name.
+         *
+         * @return name of the metric
+         *
+         * @remarks thread-safe
+         */
         std::string name() const noexcept(false)
         {
             return m_name;
         }
 
+        /*!
+         * Get the unit of the metric's underlying value.
+         *
+         * @return unit of the metric
+         *
+         * @remarks thread-safe
+         */
         std::string unit() const noexcept(false)
         {
             return m_unit;
         }
 
+        /*!
+         * Get the metric's description.
+         *
+         * @return description of the metric
+         *
+         * @remarks thread-safe
+         */
         std::string description() const noexcept(false)
         {
             return m_description;
         }
 
+        /*!
+         * Get the kind of the metric.
+         *
+         * @return metric kind
+         *
+         * @remarks thread-safe
+         */
         Kind kind() const noexcept
         {
             return m_kind;
         }
 
+        /*!
+         * Get a string representation of the kind of the metric.
+         *
+         * @return string representation of the metric kind
+         *
+         * @remarks thread-safe
+         */
         std::string kind_name() const noexcept(false)
         {
             return kind_name(m_kind);
         }
 
+        /*!
+         * Given a Metric::Kind value, get the corresponding string
+         * representation.
+         *
+         * @param[in]    kind    The kind value from which the string should be calculated
+         *
+         * @return string representation of kind
+         *
+         * @remarks thread-safe
+         */
         std::string kind_name(Kind kind) const noexcept(false)
         {
             switch(kind)
@@ -211,8 +390,23 @@ namespace measuro
             return "";
         }
 
+        /*!
+         * Ensures all metrics can be represented as std::string.
+         */
         virtual operator std::string() const = 0;
 
+        /*!
+         * Registers a "hook" function against the metric that will be called
+         * when the metric's value changes, in accordance with the cascade rate
+         * limit specified.
+         *
+         * The hook function must take one argument of type
+         * const std::chrono::steady_clock::time_point
+         *
+         * @param[in]    registrant    Hook function to call
+         *
+         * @remarks thread-safe
+         */
         void register_hook(std::function<void (std::chrono::steady_clock::time_point update_time)> registrant) noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -222,19 +416,29 @@ namespace measuro
             m_has_hooks = true;
         }
 
+        /*!
+         * Gets the cascade rate limit value in effect for the metric. The
+         * cascade rate limit is the minimum number of milliseconds between
+         * hook function calls.
+         *
+         * @return the cascade rate limit, in milliseconds
+         *
+         * @remarks thread-safe
+         */
         std::chrono::milliseconds cascade_rate_limit() const
         {
             return m_cascade_limit;
         }
 
     protected:
-
-        virtual void hook_handler(const std::chrono::steady_clock::time_point update_time)
-        {
-            (void)(update_time);
-            return;
-        }
-
+        /*!
+         * Used by inheriting metric classes to perform the update of their
+         * underlying values in a way that respects cascade rate limits.
+         *
+         * @param[in]    update_logic    The function that performs the underlying value update
+         *
+         * @remarks thread-safe
+         */
         void update(std::function<void()> update_logic) noexcept(false)
         {
             /*
@@ -263,21 +467,29 @@ namespace measuro
             }
         }
 
-        mutable std::mutex m_metric_mutex;
+        mutable std::mutex m_metric_mutex; //!< Mutex for protecting concurrent access to the metric's members
 
     private:
-        Kind m_kind;
-        std::string m_name;
-        std::string m_unit;
-        std::string m_description;
-        std::atomic<std::chrono::steady_clock::time_point> m_last_hook_update;
-        std::function<std::chrono::steady_clock::time_point ()> m_time_function;
-        std::chrono::milliseconds m_cascade_limit;
-        std::vector<std::function<void (std::chrono::steady_clock::time_point update_time)> > m_hooks;
-        std::atomic<bool> m_has_hooks;
+        Kind m_kind; //!< Metric kind
+        std::string m_name; //!< Metric name
+        std::string m_unit; //!< Metric unit
+        std::string m_description; //!< Metric description
+        std::atomic<std::chrono::steady_clock::time_point> m_last_hook_update; //!< Time the last hook functions were called
+        std::function<std::chrono::steady_clock::time_point ()> m_time_function; //!< Function used to determine the time
+        std::chrono::milliseconds m_cascade_limit; //!< Cascade rate limit, the minimum number of milliseconds between hook function calls
+        std::vector<std::function<void (std::chrono::steady_clock::time_point update_time)> > m_hooks; //!< Array of registered hook functions
+        std::atomic<bool> m_has_hooks; //!< Are there any registered hooks? If not, a shortcut is taken in Metric::update
 
     };
 
+    /*!
+     * @class DiscoverableNativeType
+     *
+     * @brief An interface for exposing a metric's "native type"
+     *
+     * A metric's "native type" is the type used to represent the metric's
+     * value internally.
+     */
     template<typename T>
     class DiscoverableNativeType
     {
@@ -285,16 +497,50 @@ namespace measuro
         typedef T NativeType;
     };
 
+    /*!
+     * @class NumberMetric
+     *
+     * @brief A metric representing signed/unsigned integer and floating point numbers
+     *
+     * A template class for metrics to be represented as numeric values.
+     * Various arithmetic and assignment operators are overloaded for
+     * manipulating metric objects easily.
+     *
+     * @par Template arguments
+     *
+     * @par
+     * K - the metric's kind
+     *
+     * @par
+     * T - the metric's native type
+     *
+     * @remarks thread-safe
+     */
     template<Metric::Kind K, typename T>
     class NumberMetric : public Metric, public DiscoverableNativeType<T>
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    name                  @see Metric::Metric
+         * @param[in]    unit                  @see Metric::Metric
+         * @param[in]    description           @see Metric::Metric
+         * @param[in]    time_function         @see Metric::Metric
+         * @param[in]    initial_value         Value with which to initialise the metric
+         * @param[in]    cascade_rate_limit    @see Metric::Metric
+         */
         NumberMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const T initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(K, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
 
+        /*!
+         * Constructor.
+         *
+         * @see NumberMetric::NumberMetric(const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const T initial_value, const std::chrono::milliseconds)
+         */
         NumberMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const T initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(K, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
@@ -306,6 +552,11 @@ namespace measuro
         NumberMetric & operator=(const NumberMetric &) = delete;
         NumberMetric & operator=(NumberMetric &&) = delete;
 
+        /*!
+         * Get the metric value as a std::string.
+         *
+         * @remarks thread-safe
+         */
         operator std::string() const noexcept(false) override final
         {
             std::stringstream formatter;
@@ -315,11 +566,23 @@ namespace measuro
             return formatter.str();
         }
 
+        /*!
+         * Get the metric value as its native type (template argument T).
+         *
+         * @remarks thread-safe
+         */
         explicit operator T() const noexcept
         {
             return m_value;
         }
 
+        /*!
+         * Assignment operator.
+         *
+         * @param[in]    rhs    Value to assign to the metric
+         *
+         * @remarks thread-safe
+         */
         void operator=(T rhs) noexcept(false)
         {
             update([this, rhs]()
@@ -328,6 +591,13 @@ namespace measuro
             });
         }
 
+        /*!
+         * Pre-increment operator.
+         *
+         * @return incremented value
+         *
+         * @remarks thread-safe
+         */
         T operator++() noexcept
         {
             T new_val = m_value;
@@ -340,6 +610,15 @@ namespace measuro
             return new_val;
         }
 
+        /*!
+         * Post-increment operator.
+         *
+         * @param ignored
+         *
+         * @return original value (before increment operation)
+         *
+         * @remarks thread-safe
+         */
         T operator++(int) noexcept
         {
             T old_val = m_value;
@@ -352,6 +631,13 @@ namespace measuro
             return old_val;
         }
 
+        /*!
+         * Pre-decrement operator.
+         *
+         * @return decremented value
+         *
+         * @remarks thread-safe
+         */
         T operator--() noexcept
         {
             T new_val = m_value;
@@ -364,6 +650,15 @@ namespace measuro
             return new_val;
         }
 
+        /*!
+         * Post-decrement operator.
+         *
+         * @param ignored
+         *
+         * @return original value (before decrement operation)
+         *
+         * @remarks thread-safe
+         */
         T operator--(int) noexcept
         {
             T old_val = m_value;
@@ -376,6 +671,15 @@ namespace measuro
             return old_val;
         }
 
+        /*!
+         * Adds the specified value to the metric.
+         *
+         * @param[in]    rhs    Value to add
+         *
+         * @return the value of the metric, after the add operation
+         *
+         * @remarks thread-safe
+         */
         T operator+=(const T & rhs) noexcept
         {
             T new_val = m_value;
@@ -388,6 +692,15 @@ namespace measuro
             return new_val;
         }
 
+        /*!
+         * Subtracts the specified value from the metric.
+         *
+         * @param[in]    rhs    Value to subtract
+         *
+         * @return the value of the metric, after the subtract operation
+         *
+         * @remarks thread-safe
+         */
         T operator-=(const T & rhs) noexcept
         {
             T new_val = m_value;
@@ -401,20 +714,39 @@ namespace measuro
         }
 
     private:
-        std::atomic<T> m_value;
+        std::atomic<T> m_value; //!< Metric's value
 
     };
 
+    /*!
+     * @class NumberMetric<Metric::Kind::FLOAT, float>
+     *
+     * @brief Specialisation of NumberMetric for float values.
+     *
+     * @see NumberMetric
+     *
+     * @remarks thread-safe
+     */
     template<>
     class NumberMetric<Metric::Kind::FLOAT, float> : public Metric, public DiscoverableNativeType<float>
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @see NumberMetric
+         */
         NumberMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const float initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::FLOAT, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
 
+        /*!
+         * Constructor.
+         *
+         * @see NumberMetric
+         */
         NumberMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const float initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::FLOAT, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
@@ -426,6 +758,12 @@ namespace measuro
         NumberMetric & operator=(const NumberMetric &) = delete;
         NumberMetric & operator=(NumberMetric &&) = delete;
 
+        /*!
+         * Get the metric value as a std::string. Always represented to 2
+         * decimal places.
+         *
+         * @remarks thread-safe
+         */
         operator std::string() const noexcept(false) override final
         {
             std::stringstream formatter;
@@ -435,11 +773,23 @@ namespace measuro
             return formatter.str();
         }
 
+        /*!
+         * Get the metric value as a float.
+         *
+         * @remarks thread-safe
+         */
         explicit operator float() const noexcept
         {
             return m_value;
         }
 
+        /*!
+         * Assignment operator.
+         *
+         * @param[in]    rhs    Value to assign to the metric
+         *
+         * @remarks thread-safe
+         */
         void operator=(float rhs) noexcept(false)
         {
             update([this, rhs]()
@@ -449,14 +799,41 @@ namespace measuro
         }
 
     private:
-        std::atomic<float> m_value;
+        std::atomic<float> m_value; //!< Metric's value
 
     };
 
+    /*!
+     * @class RateMetric
+     *
+     * @brief Tracks the rate of change of a "distance" NumberMetric object
+     *
+     * A hook function is used to determine when the distance metric is
+     * updated. Currently this is the only metric class that uses hook
+     * functionality.
+     *
+     * @par Template arguments
+     *
+     * @par
+     * D - the type of the metric object whose rate is to be tracked
+     *
+     * @remarks thread-safe
+     */
     template<typename D>
     class RateMetric : public Metric, public DiscoverableNativeType<float>
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    distance              The metric whose rate is to be tracked
+         * @param[in]    result_proxy          A function used to modify a calculated rate before it is committed
+         * @param[in]    name                  @see Metric::Metric
+         * @param[in]    unit                  @see Metric::Metric
+         * @param[in]    description           @see Metric::Metric
+         * @param[in]    time_function         @see Metric::Metric
+         * @param[in]    cascade_rate_limit    @see Metric::Metric
+         */
         RateMetric(std::shared_ptr<D> & distance, std::function<float (float)> result_proxy, const std::string & name, const std::string & unit, const std::string & description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_result_proxy(result_proxy),
@@ -465,6 +842,9 @@ namespace measuro
             m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
         }
 
+        /*!
+         * @see RateMetric::RateMetric(std::shared_ptr<D> &, std::function<float (float)>, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
+         */
         RateMetric(std::shared_ptr<D> & distance, std::function<float (float)> result_proxy, const char * name, const char * unit, const char * description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_result_proxy(result_proxy),
@@ -473,6 +853,9 @@ namespace measuro
             m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
         }
 
+        /*!
+         * @see RateMetric::RateMetric(std::shared_ptr<D> &, std::function<float (float)>, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
+         */
         RateMetric(std::shared_ptr<D> & distance, const std::string & name, const std::string & unit, const std::string & description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_last_distance(0), m_value(0.0f)
@@ -480,6 +863,9 @@ namespace measuro
             m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
         }
 
+        /*!
+         * @see RateMetric::RateMetric(std::shared_ptr<D> &, std::function<float (float)>, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
+         */
         RateMetric(std::shared_ptr<D> & distance, const char * name, const char * unit, const char * description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_last_distance(0), m_value(0.0f)
@@ -492,6 +878,12 @@ namespace measuro
         RateMetric & operator=(const RateMetric &) = delete;
         RateMetric & operator=(RateMetric &&) = delete;
 
+        /*!
+         * Get the metric value as a std::string. Always represented
+         * to 2 decimal places.
+         *
+         * @remarks thread-safe
+         */
         operator std::string() const noexcept(false) override final
         {
             std::stringstream formatter;
@@ -499,18 +891,42 @@ namespace measuro
             return formatter.str();
         }
 
+        /*!
+         * Get the metric value as a float.
+         *
+         * @remarks thread-safe
+         */
         explicit operator float() const noexcept
         {
             return m_value;
         }
 
+        /*!
+         * For a given value @c val apply the specified proxy function and
+         * return the result. Alternatively if no proxy function is specified,
+         * return @c val
+         *
+         * @param[in]    val    Value to proxy
+         *
+         * @return proxied value
+         *
+         * @remarks thread-safe if proxy function is also thread-safe
+         */
         float proxy_value(float val) const
         {
             return ((m_result_proxy) ? m_result_proxy(val) : val);
         }
 
     private:
-        void hook_handler(const std::chrono::steady_clock::time_point update_time) noexcept(false) override final
+        /*!
+         * Handles callbacks from the distance metric and calculates its rate
+         * of change.
+         *
+         * @param[in]    update_time    Time of the hook call
+         *
+         * @remarks thread-safe if proxy function is also thread-safe
+         */
+        void hook_handler(const std::chrono::steady_clock::time_point update_time) noexcept(false)
         {
             update([this, & update_time]()
             {
@@ -528,18 +944,44 @@ namespace measuro
             });
         }
 
-        std::shared_ptr<D> m_distance;
-        std::function<float (float)> m_result_proxy;
-        std::atomic<float> m_last_distance;
-        std::atomic<float> m_value;
-        std::chrono::steady_clock::time_point m_last_hook_time;
+        std::shared_ptr<D> m_distance; //!< Distance metric whose rate is to be tracked
+        std::function<float (float)> m_result_proxy; //!< Proxy function to use for rate values
+        std::atomic<float> m_last_distance; //!< The distance value last read
+        std::atomic<float> m_value; //!< Most recently calculated rate
+        std::chrono::steady_clock::time_point m_last_hook_time; //!< Last time at which RateMetric::hook_handler was invoked
 
     };
 
+    /*!
+     * @class SumMetric
+     *
+     * @brief Sums the values of other metrics
+     *
+     * Adds the values of multiple other "target" metrics together. Unlike
+     * RateMetric, SumMetric doesn't use hooks, but simply defers the summing
+     * operation until it is rendered (or cast to a std::string).
+     *
+     * @par Template arguments
+     *
+     * @par
+     * D - the type of the metric objects to be summed
+     *
+     * @remarks thread-safe
+     */
     template<typename D>
     class SumMetric : public Metric, public DiscoverableNativeType<typename D::NativeType>
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    targets               List of target metrics whose values are to be summed
+         * @param[in]    name                  @see Metric::Metric
+         * @param[in]    unit                  @see Metric::Metric
+         * @param[in]    description           @see Metric::Metric
+         * @param[in]    time_function         @see Metric::Metric
+         * @param[in]    cascade_rate_limit    @see Metric::Metric
+         */
         SumMetric(std::initializer_list<std::shared_ptr<D> > targets, const std::string & name, const std::string & unit, const std::string & description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
@@ -550,12 +992,18 @@ namespace measuro
             }
         }
 
+        /*!
+         * @see SumMetric::SumMetric(std::initializer_list<std::shared_ptr<D> >, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
+         */
         SumMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
         {
         }
 
+        /*!
+         * @see SumMetric::SumMetric(std::initializer_list<std::shared_ptr<D> >, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
+         */
         SumMetric(std::initializer_list<std::shared_ptr<D> > targets, const char * name, const char * unit, const char * description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
@@ -566,6 +1014,9 @@ namespace measuro
             }
         }
 
+        /*!
+         * @see SumMetric::SumMetric(std::initializer_list<std::shared_ptr<D> >, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
+         */
         SumMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
@@ -577,6 +1028,13 @@ namespace measuro
         SumMetric & operator=(const SumMetric &) = delete;
         SumMetric & operator=(SumMetric &&) = delete;
 
+        /*!
+         * Adds a target metric to the list of those to be summed.
+         *
+         * @param[in]    target    The metric to be included in the sum operation
+         *
+         * @remarks thread-safe
+         */
         void add_target(std::shared_ptr<D> & target) noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -585,6 +1043,11 @@ namespace measuro
             m_targets.push_back(target);
         }
 
+        /*!
+         * Get the sum as the native type defined by the target metric type.
+         *
+         * @remarks thread-safe
+         */
         explicit operator typename D::NativeType() const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -600,6 +1063,12 @@ namespace measuro
             return total;
         }
 
+        /*!
+         * Get the sum as a std::string. Always represented to 2 decimal
+         * places for float metrics.
+         *
+         * @remarks thread-safe
+         */
         operator std::string() const noexcept(false) override final
         {
             auto total = (operator typename D::NativeType)();
@@ -610,25 +1079,48 @@ namespace measuro
             return formatter.str();
         }
 
+        /*!
+         * Get the number of metrics being summed.
+         *
+         * @return the number of metrics
+         */
         std::size_t target_count() const noexcept
         {
             return m_targets.size();
         }
 
     private:
-        std::vector<std::shared_ptr<D> > m_targets;
+        std::vector<std::shared_ptr<D> > m_targets; //!< Array of targets to be summed
 
     };
 
+    /*!
+     * @class StringMetric
+     *
+     * @brief A metric that is assigned a string.
+     *
+     * @remarks thread-safe
+     */
     class StringMetric : public Metric, public DiscoverableNativeType<std::string>
     {
     public:
+        /*!
+         *
+         * @param[in]    name                  @see Metric::Metric
+         * @param[in]    description           @see Metric::Metric
+         * @param[in]    time_function         @see Metric::Metric
+         * @param[in]    initial_value         Value with which to initialise the metric
+         * @param[in]    cascade_rate_limit    @see Metric::Metric
+         */
         StringMetric(const std::string & name, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const std::string & initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::STR, name, description, time_function, cascade_rate_limit), m_value(initial_value)
         {
         }
 
+        /*!
+         * @see StringMetric::StringMetric(const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::string &, const std::chrono::milliseconds)
+         */
         StringMetric(const char * name, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const char * initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
         : Metric(Metric::Kind::STR, name, description, time_function, cascade_rate_limit), m_value(initial_value)
@@ -640,6 +1132,9 @@ namespace measuro
         StringMetric & operator=(const StringMetric &) = delete;
         StringMetric & operator=(StringMetric &&) = delete;
 
+        /*!
+         * Get the value of the metric as a string.
+         */
         operator std::string() const noexcept(false) override final
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -648,6 +1143,11 @@ namespace measuro
             return m_value;
         }
 
+        /*!
+         * Assign a new value to the metric.
+         *
+         * @param[in]    rhs    The new value to assign
+         */
         void operator=(const char * rhs) noexcept(false)
         {
             update([this, rhs]()
@@ -659,6 +1159,9 @@ namespace measuro
             });
         }
 
+        /*!
+         * @see StringMetric::operator=(const char *)
+         */
         void operator=(const std::string & rhs) noexcept(false)
         {
             update([this, rhs]()
@@ -671,13 +1174,31 @@ namespace measuro
         }
 
     private:
-        std::string m_value;
+        std::string m_value; //!< Metric's value
 
     };
 
+    /*!
+     * @class BoolMetric
+     *
+     * @brief A metric that can have 1 of 2 states: @c true or @c false.
+     *
+     * @remarks thread-safe
+     */
     class BoolMetric : public Metric, public DiscoverableNativeType<bool>
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    name                  @see Metric::Metric
+         * @param[in]    description           @see Metric::Metric
+         * @param[in]    time_function         @see Metric::Metric
+         * @param[in]    initial_value         Value with which to initialise the metric
+         * @param[in]    true_rep              String representation of the metric when its value is @c true. Default = TRUE
+         * @param[in]    false_rep             String representation of the metric when its value is @c false. Default = FALSE
+         * @param[in]    cascade_rate_limit    @see Metric::Metric
+         */
         BoolMetric(const std::string & name, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
@@ -686,6 +1207,9 @@ namespace measuro
         {
         }
 
+        /*!
+         * @see BoolMetric::BoolMetric(const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const bool, const std::string, const std::string, const std::chrono::milliseconds)
+         */
         BoolMetric(const char * name, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
@@ -699,6 +1223,10 @@ namespace measuro
         BoolMetric & operator=(const BoolMetric &) = delete;
         BoolMetric & operator=(BoolMetric &&) = delete;
 
+        /*!
+         * Get the appropriate @c true or @c false string representation of the
+         * metric based on its value.
+         */
         operator std::string() const noexcept override final
         {
             if (m_value)
@@ -711,11 +1239,19 @@ namespace measuro
             }
         }
 
+        /*!
+         * Get the value of the metric as a bool.
+         */
         explicit operator bool() const noexcept
         {
             return m_value;
         }
 
+        /*!
+         * Assign a new value to the metric.
+         *
+         * @param[in]    rhs    The new value to assign
+         */
         void operator=(bool rhs) noexcept
         {
             update([this, rhs]()
@@ -724,22 +1260,55 @@ namespace measuro
             });
         }
 
+        /*!
+         * Set the value of the metric to the logical not of its current value,
+         * i.e. if it's current value is @c true then set it to @c false and
+         * vice versa.
+         */
         bool operator!() noexcept
         {
             return !m_value;
         }
 
     private:
-        std::atomic<bool> m_value;
-        const std::string m_true_rep;
-        const std::string m_false_rep;
+        std::atomic<bool> m_value; //!< Metric's value
+        const std::string m_true_rep; //!< @c true string representation
+        const std::string m_false_rep; //!< @c false string representation
 
     };
 
+    /*!
+     * @class Throttle
+     *
+     * @brief Limits the rate at which operations are performed on a metric
+     *
+     * Performance can suffer dramatically if a metric is updated with high
+     * frequency. This class serves as an adapter for limiting the rate at
+     * which a metric is updated in 2 ways: time (minimum time interval
+     * between updates) and attempted operation count (minimum attempted
+     * operations between updates). Instances of this class are not
+     * thread-safe. The performance advantages of its use are in part a result
+     * of eliminating locks and atomics.
+     *
+     * @par Template arguments
+     *
+     * @par
+     * T - the type of the metric object to be throttled
+     *
+     * @remarks thread-hostile
+     */
     template<typename T>
     class Throttle
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    metric           The metric to throttle
+         * @param[in]    time_limit       The minimum number of milliseconds between updates
+         * @param[in]    op_limit         The number of attempted operations between updates
+         * @param[in]    time_function    Function used to determine the time. Used for simulation in testing
+         */
         Throttle(std::shared_ptr<T> & metric, const std::chrono::milliseconds time_limit, const std::uint64_t op_limit = 1000,
                 std::function<std::chrono::steady_clock::time_point ()> time_function = []{return std::chrono::steady_clock::now();})
         : m_metric(metric), m_time_limit(time_limit), m_next_update(time_function() + time_limit), m_time_function(time_function),
@@ -751,6 +1320,14 @@ namespace measuro
         {
         }
 
+        /*!
+         * Assign a new value to the throttled metric according to the
+         * specified throttling rules.
+         *
+         * @param[in]    rhs    The new value to assign
+         *
+         * @remarks thread-hostile
+         */
         void operator=(const typename T::NativeType rhs) noexcept(false)
         {
             if (check_update())
@@ -759,22 +1336,56 @@ namespace measuro
             }
         }
 
+        /*!
+         * Allows the de-reference operator to be used with Throttle objects.
+         * Helps avoid confusion with the typical use of Metric objects that
+         * requires de-referencing due to them being managed by a
+         * std::shared_ptr
+         *
+         * @return reference to the Throttle object
+         *
+         * @remarks thread-hostile
+         */
         Throttle<T> & operator*() noexcept
         {
             return (*this);
         }
 
+        /*!
+         * Get the configured time limit (minimum number of milliseconds
+         * between updates).
+         *
+         * @return configured time limit in milliseconds
+         *
+         * @remarks thread-hostile
+         */
         std::chrono::milliseconds time_limit() const noexcept
         {
             return m_time_limit;
         }
 
+        /*!
+         * Get the configured attempted operations limit (number of attempted
+         * operations between updates).
+         *
+         * @return configured attempted operations limit
+         *
+         * @remarks thread-hostile
+         */
         std::uint64_t op_limit() const noexcept
         {
             return m_op_limit;
         }
 
     private:
+        /*!
+         * Given the configured time and attempted operations limits, determine
+         * if an update should succeed.
+         *
+         * @return @c true if the update should succeed, @c false otherwise
+         *
+         * @remarks thread-hostile
+         */
         inline bool check_update() noexcept
         {
             if (++m_op_count % m_op_limit == 0)
@@ -796,18 +1407,43 @@ namespace measuro
             }
         }
 
-        std::shared_ptr<T> m_metric;
-        const std::chrono::milliseconds m_time_limit;
-        std::chrono::steady_clock::time_point m_next_update;
-        std::function<std::chrono::steady_clock::time_point ()> m_time_function;
-        const std::uint64_t m_op_limit;
-        std::uint64_t m_op_count;
+        std::shared_ptr<T> m_metric; //!< The metric being throttled
+        const std::chrono::milliseconds m_time_limit; //!< Time limit (milliseconds between updates)
+        std::chrono::steady_clock::time_point m_next_update; //!< Time at/after which an update may next succeed
+        std::function<std::chrono::steady_clock::time_point ()> m_time_function; //!< Function used to determine the time
+        const std::uint64_t m_op_limit; //!< Attempted operation limit (attempted operations between updates)
+        std::uint64_t m_op_count; //!< Total attempted operations
     };
 
+    /*!
+     * @brief Throttle template specialisation for NumberMetric objects
+     *
+     * A template specialisation of Throttle providing addition operator
+     * overloads useful for manipulating NumberMetric objects. These operator
+     * overloads remember their right-hand side operand when the addition
+     * operation can't be performed on the metric due to throttling. The
+     * stored value is then added to the metric when the next addition
+     * operation is committed. As with Throttle, this class is not thread-safe.
+     *
+     * @see Throttle
+     *
+     * @par Template arguments
+     *
+     * @par
+     * K - the kind of the NumberMetric being throttled
+     *
+     * @par
+     * T - the native type of the NumberMetric being throttled
+     *
+     * @remarks thread-hostile
+     */
     template<Metric::Kind K, typename T>
     class Throttle<NumberMetric<K, T> >
     {
     public:
+        /*!
+         * @see Throttle
+         */
         Throttle(std::shared_ptr<NumberMetric<K, T> > & metric, const std::chrono::milliseconds time_limit, const std::uint64_t op_limit = 1000,
                 std::function<std::chrono::steady_clock::time_point ()> time_function = []{return std::chrono::steady_clock::now();})
         : m_metric(metric), m_time_limit(time_limit), m_next_update(time_function() + time_limit), m_time_function(time_function),
@@ -819,6 +1455,9 @@ namespace measuro
         {
         }
 
+        /*!
+         * @see Throttle
+         */
         void operator=(const T & rhs) noexcept
         {
             if (check_update())
@@ -828,6 +1467,16 @@ namespace measuro
             }
         }
 
+        /*!
+         * Adds the specified value to the metric if allowed by the throttling
+         * parameters.
+         *
+         * @param[in]    rhs    Number to be added to the metric
+         *
+         * @return @c true if the metric was updated, @c false if it was not due to throttling
+         *
+         * @remarks thread-hostile
+         */
         bool operator+=(const T & rhs) noexcept
         {
             m_pending_val += rhs;
@@ -843,6 +1492,13 @@ namespace measuro
             }
         }
 
+        /*!
+         * Increments the metric if allowed by the throttling parameters.
+         *
+         * @return @c true if the metric was updated, @c false if it was not due to throttling
+         *
+         * @remarks thread-hostile
+         */
         bool operator++() noexcept
         {
             ++m_pending_val;
@@ -858,28 +1514,44 @@ namespace measuro
             }
         }
 
+        /*!
+         * @see Throttle::operator*
+         */
         Throttle<NumberMetric<K, T> > & operator*() noexcept
         {
             return (*this);
         }
 
+        /*!
+         * Updates the metric with any pending addition operations deferred due
+         * to throttling.
+         */
         inline void commit() noexcept
         {
             (*m_metric) += m_pending_val;
             m_pending_val = 0;
         }
 
+        /*!
+         * @see Throttle::time_limit
+         */
         std::chrono::milliseconds time_limit() const noexcept
         {
             return m_time_limit;
         }
 
+        /*!
+         * @see Throttle::op_limit
+         */
         std::uint64_t op_limit() const noexcept
         {
             return m_op_limit;
         }
 
     private:
+        /*!
+         * @see Throttle::check_update
+         */
         inline bool check_update() noexcept
         {
             if (++m_op_count % m_op_limit == 0)
@@ -901,15 +1573,22 @@ namespace measuro
             }
         }
 
-        std::shared_ptr<NumberMetric<K, T> > m_metric;
-        const std::chrono::milliseconds m_time_limit;
-        std::chrono::steady_clock::time_point m_next_update;
-        std::function<std::chrono::steady_clock::time_point ()> m_time_function;
-        const std::uint64_t m_op_limit;
-        std::uint64_t m_op_count;
-        T m_pending_val;
+        std::shared_ptr<NumberMetric<K, T> > m_metric; //!< @see Throttle
+        const std::chrono::milliseconds m_time_limit; //!< @see Throttle
+        std::chrono::steady_clock::time_point m_next_update; //!< @see Throttle
+        std::function<std::chrono::steady_clock::time_point ()> m_time_function; //!< @see Throttle
+        const std::uint64_t m_op_limit; //!< @see Throttle
+        std::uint64_t m_op_count; //!< @see Throttle
+        T m_pending_val; //!< Uncommitted value waiting to be added to the metric
     };
 
+    /*!
+     * @class Renderer
+     *
+     * @brief Interface for metric "renderers" (output objects)
+     *
+     * @remarks thread-hostile
+     */
     class Renderer
     {
     public:
@@ -921,40 +1600,87 @@ namespace measuro
         {
         }
 
+        /*!
+         * For a given render operation, called once before all calls to
+         * @link Renderer::render
+         *
+         * @see Renderer::render
+         */
         virtual void before()
         {
             return;
         }
 
+        /*!
+         * For a given render operation, called once after all calls to
+         * @link Renderer::render
+         *
+         * @see Renderer::render
+         */
         virtual void after()
         {
             return;
         }
 
+        /*!
+         * For a given render operation, called once for each metric to be
+         * rendered.
+         *
+         * @param[in]    metric    The metric to be rendered
+         */
         virtual void render(const std::shared_ptr<Metric> & metric)
         {
             (void)(metric);
             return;
         }
 
+        /*!
+         * Sets or unsets the "suppressed exception" flag which is used to
+         * indicate if an exception thrown in a derived method of
+         * after was suppressed. This will happen to prevent exceptions
+         * propagating out of the RendererContext destructor.
+         *
+         * @param[in]    state    The state to which to set the flag
+         *
+         * @see Renderer::after
+         */
         void suppressed_exception(bool state) noexcept
         {
             m_suppressed_exception = state;
         }
 
+        /*!
+         * Gets the state of the "suppressed exception" flag.
+         *
+         * @see Renderer::suppressed_exception(bool)
+         *
+         * @return @c true if the flag is set, @c false otherwise
+         */
         bool suppressed_exception() const noexcept
         {
             return m_suppressed_exception;
         }
 
     private:
-        bool m_suppressed_exception;
+        bool m_suppressed_exception; //!< The flag - @c true if an exception was suppressed, @c false otherwise
 
     };
 
+    /*!
+     * @class PlainRenderer
+     *
+     * @brief Renders metrics as simple line-delimited key value pairs in the form <metric name> = <metric value>
+     *
+     * @remarks thread-hostile
+     */
     class PlainRenderer : public Renderer
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    destination    Output stream to which to write the rendered metrics. This stream object @b must persist beyond the life of the renderer
+         */
         PlainRenderer(std::ostream & destination) noexcept : m_destination(destination)
         {
         }
@@ -963,23 +1689,34 @@ namespace measuro
         {
         }
 
+        /*!
+         * Adds a newline to the stream and flushes its buffer.
+         */
         virtual void after() noexcept(false) override
         {
             m_destination << std::endl;
         }
 
+        /*!
+         * Renders a metric as <metric name> = <metric value>\\n and writes it
+         * to the output stream.
+         *
+         * @param[in]    metric    The metric to render
+         */
         void render(const std::shared_ptr<Metric> & metric) noexcept(false) override final
         {
             m_destination << metric->name() << " = " << std::string((*metric)) << "\n";
         }
 
     private:
-        std::ostream & m_destination;
+        std::ostream & m_destination; //!< Output stream to which to write rendered output
 
     };
 
     /*!
      * @class JsonStringLiteral
+     *
+     * @brief A valid, quoted and escaped JSON string literal
      *
      * Converts a data buffer to a JSON string literal for insertion
      * directly in JSON data. The string literal representation contains
@@ -994,7 +1731,7 @@ namespace measuro
         /*!
          * Constructor.
          *
-         * @param[in]   data    Contents of the string literal
+         * @param[in]    data    Contents of the string literal
          */
         explicit JsonStringLiteral(const std::string & data) noexcept(false)
         {
@@ -1004,7 +1741,7 @@ namespace measuro
         /*!
          * Constructor.
          *
-         * @param[in]   data    Contents of the string literal
+         * @param[in]    data    Contents of the string literal
          */
         explicit JsonStringLiteral(const char * data) noexcept(false)
         {
@@ -1045,8 +1782,8 @@ namespace measuro
          * Create a JSON-compatible string literal representation of in, and write it to
          * out.
          *
-         * @param[in]   in  The string from which to create a JSON string literal
-         * @param[out]  out The result
+         * @param[in]     in     The string from which to create a JSON string literal
+         * @param[out]    out    The result
          */
         void literalise(const std::string & in, std::string & out) const noexcept(false)
         {
@@ -1108,8 +1845,8 @@ namespace measuro
          * Escape c as a JSON hex escape sequence of the form \uXXXX, where XXXX is a
          * 32-bit integer in hexadecimal notation, and append it to out.
          *
-         * @param[in]   c   The character to escape
-         * @param[out]  out The string to which the escaped character will be appended
+         * @param[in]     c      The character to escape
+         * @param[out]    out    The string to which the escaped character will be appended
          */
         void escape_as_hex(char c, std::string & out) const noexcept
         {
@@ -1124,9 +1861,31 @@ namespace measuro
 
     };
 
+    /*!
+     * @class JsonRenderer
+     *
+     * @brief Renders metrics as a JSON object
+     *
+     * Rendered metrics consist of a single JSON dictionary whose keys are
+     * metric names that each refer to a single JSON dictionary containing
+     * information about the metric. Specifically, the metric's @em value,
+     * @em unit, @em kind and @em description. Note that rendered JSON is never
+     * pretty-printed (but the example below is for convenience).
+     *
+     * @include json_renderer_example.json
+     *
+     * @remarks thread-hostile
+     */
     class JsonRenderer : public Renderer
     {
     public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    destination    Output stream to which to write the rendered metrics. This stream object @b must persist beyond the life of the renderer
+         *
+         * @remarks thread-hostile
+         */
         JsonRenderer(std::ostream & destination) noexcept : m_destination(destination), m_count(0)
         {
         }
@@ -1135,18 +1894,38 @@ namespace measuro
         {
         }
 
+        /*!
+         * Writes the leading brace of the JSON object to the output stream.
+         *
+         * @remarks thread-hostile
+         */
         virtual void before() noexcept(false) override
         {
             m_count = 0;
             m_destination << '{';
         }
 
+        /*!
+         * Writes the trailing brace of the JSON object to the output stream,
+         * then flushes the stream's buffer.
+         *
+         * @remarks thread-hostile
+         */
         virtual void after() noexcept(false) override
         {
             m_destination << '}';
             m_destination.flush();
         }
 
+        /*!
+         * Renders the metric as a JSON object.
+         *
+         * @example json_renderer_example.json
+         *
+         * @param[in]    metric    The metric to render
+         *
+         * @remarks thread-hostile
+         */
         void render(const std::shared_ptr<Metric> & metric) noexcept(false) override final
         {
             if (m_count > 0)
@@ -1183,8 +1962,8 @@ namespace measuro
         }
 
     private:
-        std::ostream & m_destination;
-        std::size_t m_count;
+        std::ostream & m_destination; //!< Output stream to which to write rendered output
+        std::size_t m_count; //!< Number of metrics written to the stream since the start of the current render operation
 
     };
 
@@ -1212,9 +1991,27 @@ namespace measuro
     using StringThrottle = Throttle<StringMetric>;
     using BoolThrottle = Throttle<BoolMetric>;
 
+    /*!
+     * @class Registry
+     *
+     * @brief Creates, tracks and renders metrics
+     *
+     * You probably only need a single Registry object for your entire
+     * application. It serves as a factory and clearing house for metric
+     * objects, providing helper methods to create, look up and render metrics.
+     *
+     * @remarks thread-safe
+     */
     class Registry
     {
     public:
+        /*!
+         * @class RenderSchedule
+         *
+         * @brief Schedules a regular render operation to be performed every @em n seconds
+         *
+         * @remarks thread-safe
+         */
         class RenderSchedule
         {
         public:
@@ -1261,21 +2058,42 @@ namespace measuro
                 while(!m_stop);
             }
 
-            Registry & m_registry;
-            Renderer & m_renderer;
-            std::atomic<bool> m_stop;
-            const std::chrono::seconds m_interval;
-            std::thread m_executor;
-            mutable std::condition_variable m_stop_cond;
-            mutable std::mutex m_cond_mutex;
+            Registry & m_registry; //!< The registry managing the metrics to be rendered
+            Renderer & m_renderer; //!< The renderer to be used after each interval
+            std::atomic<bool> m_stop; //!< Flag indicating whether or not the scheduler should terminate
+            const std::chrono::seconds m_interval; //!< Number of seconds between each render
+            std::thread m_executor; //!< Thread in which asynchronous render operations should be performed
+            mutable std::condition_variable m_stop_cond; //!< Condition variable used to notify the scheduler of a stop command
+            mutable std::mutex m_cond_mutex; //!< Condition variable mutex
 
         };
 
+        /*!
+         * Constructor.
+         *
+         * @param[in]    time_function    Function used to determine the time. Used for testing - in production, use the default value
+         */
         Registry(std::function<std::chrono::steady_clock::time_point ()> time_function = []{return std::chrono::steady_clock::now();}) noexcept
         : m_time_function(time_function)
         {
         }
 
+        /*!
+         * Creates an unsigned integer metric.
+         *
+         * @param[in]    k                     Must be UINT::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric
+         * @param[in]    description           Description of the metric
+         * @param[in]    initial_value         Value with which to initialise the metric
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         UintHandle create_metric(const UINT, const std::string name, const std::string unit, const std::string description,
                 const std::uint64_t initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
@@ -1284,6 +2102,22 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a signed integer metric.
+         *
+         * @param[in]    k                     Must be INT::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric
+         * @param[in]    description           Description of the metric
+         * @param[in]    initial_value         Value with which to initialise the metric
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         IntHandle create_metric(const INT, const std::string name, const std::string unit, const std::string description,
                 const std::uint64_t initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
@@ -1292,6 +2126,22 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a float metric.
+         *
+         * @param[in]    k                     Must be FLOAT::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric
+         * @param[in]    description           Description of the metric
+         * @param[in]    initial_value         Value with which to initialise the metric
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         FloatHandle create_metric(const FLOAT, const std::string name, const std::string unit, const std::string description,
                 const float initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
@@ -1300,6 +2150,24 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that tracks the rate of change of an unsigned metric.
+         *
+         * @param[in]    k1                    Must be RATE::KIND
+         * @param[in]    k2                    Must be UINT::KIND
+         * @param[in]    distance              The metric whose rate of change is to be tracked
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
+         * @param[in]    description           Description of the metric
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         RateOfUintHandle create_metric(const RATE, const UINT,
                 UintHandle & distance, const std::string name, const std::string unit, const std::string description,
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
@@ -1309,6 +2177,24 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that tracks the rate of change of an signed metric.
+         *
+         * @param[in]    k1                    Must be RATE::KIND
+         * @param[in]    k2                    Must be INT::KIND
+         * @param[in]    distance              The metric whose rate of change is to be tracked
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
+         * @param[in]    description           Description of the metric
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         RateOfIntHandle create_metric(const RATE, const INT,
                 IntHandle & distance, const std::string name, const std::string unit, const std::string description,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
@@ -1318,6 +2204,24 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that tracks the rate of change of an float metric.
+         *
+         * @param[in]    k1                    Must be RATE::KIND
+         * @param[in]    k2                    Must be FLOAT::KIND
+         * @param[in]    distance              The metric whose rate of change is to be tracked
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
+         * @param[in]    description           Description of the metric
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         RateOfFloatHandle create_metric(const RATE, const FLOAT,
                 FloatHandle & distance, const std::string name, const std::string unit, const std::string description,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
@@ -1327,6 +2231,26 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that tracks the rate of change of a sum of unsigned
+         * metrics.
+         *
+         * @param[in]    k1                    Must be RATE::KIND
+         * @param[in]    k2                    Must be SUM::KIND
+         * @param[in]    k3                    Must be UINT::KIND
+         * @param[in]    distance              The metric whose rate of change is to be tracked
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
+         * @param[in]    description           Description of the metric
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         RateOfSumOfUintHandle create_metric(const RATE, const SUM, const UINT,
                 SumOfUintHandle & distance, const std::string name, const std::string unit, const std::string description,
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
@@ -1336,6 +2260,26 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that tracks the rate of change of a sum of signed
+         * metrics.
+         *
+         * @param[in]    k1                    Must be RATE::KIND
+         * @param[in]    k2                    Must be SUM::KIND
+         * @param[in]    k3                    Must be INT::KIND
+         * @param[in]    distance              The metric whose rate of change is to be tracked
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
+         * @param[in]    description           Description of the metric
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         RateOfSumOfIntHandle create_metric(const RATE, const SUM, const INT,
                 SumOfIntHandle & distance, const std::string name, const std::string unit, const std::string description,
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
@@ -1345,6 +2289,26 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that tracks the rate of change of a sum of float
+         * metrics.
+         *
+         * @param[in]    k1                    Must be RATE::KIND
+         * @param[in]    k2                    Must be SUM::KIND
+         * @param[in]    k3                    Must be FLOAT::KIND
+         * @param[in]    distance              The metric whose rate of change is to be tracked
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
+         * @param[in]    description           Description of the metric
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         RateOfSumOfFloatHandle create_metric(const RATE, const SUM, const FLOAT,
                 SumOfFloatHandle & distance, const std::string name, const std::string unit, const std::string description,
                 std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
@@ -1354,6 +2318,23 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that sums unsigned metrics.
+         *
+         * @param[in]    k1                    Must be SUM::KIND
+         * @param[in]    k2                    Must be UINT::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric
+         * @param[in]    description           Description of the metric
+         * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         SumOfUintHandle create_metric(const SUM, const UINT,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<UintHandle > targets = {},
@@ -1367,6 +2348,23 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that sums signed metrics.
+         *
+         * @param[in]    k1                    Must be SUM::KIND
+         * @param[in]    k2                    Must be INT::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric
+         * @param[in]    description           Description of the metric
+         * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         SumOfIntHandle create_metric(const SUM, const INT,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<IntHandle > targets = {},
@@ -1380,6 +2378,23 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that sums float metrics.
+         *
+         * @param[in]    k1                    Must be SUM::KIND
+         * @param[in]    k2                    Must be FLOAT::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric
+         * @param[in]    description           Description of the metric
+         * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         SumOfFloatHandle create_metric(const SUM, const FLOAT,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<FloatHandle > targets = {},
@@ -1393,6 +2408,24 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that sums rate of unsigned metrics.
+         *
+         * @param[in]    k1                    Must be SUM::KIND
+         * @param[in]    k2                    Must be RATE::KIND
+         * @param[in]    k3                    Must be UINT::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric
+         * @param[in]    description           Description of the metric
+         * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         SumOfRateOfUintHandle create_metric(const SUM, const RATE, const UINT,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<RateOfUintHandle > targets = {},
@@ -1406,6 +2439,24 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that sums rate of signed metrics.
+         *
+         * @param[in]    k1                    Must be SUM::KIND
+         * @param[in]    k2                    Must be RATE::KIND
+         * @param[in]    k3                    Must be INT::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric
+         * @param[in]    description           Description of the metric
+         * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         SumOfRateOfIntHandle create_metric(const SUM, const RATE, const INT,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<RateOfIntHandle > targets = {},
@@ -1419,6 +2470,24 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric that sums rate of float metrics.
+         *
+         * @param[in]    k1                    Must be SUM::KIND
+         * @param[in]    k2                    Must be RATE::KIND
+         * @param[in]    k3                    Must be FLOAT::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    unit                  Unit string to associate with the metric
+         * @param[in]    description           Description of the metric
+         * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         SumOfRateOfFloatHandle create_metric(const SUM, const RATE, const FLOAT,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<RateOfFloatHandle > targets = {},
@@ -1432,6 +2501,21 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric whose value is a string.
+         *
+         * @param[in]    k                     Must be STR::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    description           Description of the metric
+         * @param[in]    initial_value         Value with which to initialise the metric
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         StringHandle create_metric(const STR, const std::string name, const std::string description,
                 const std::string initial_value = "", const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
@@ -1440,6 +2524,23 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a metric whose value is either @c true or @c false.
+         *
+         * @param[in]    k                     Must be BOOL::KIND
+         * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
+         * @param[in]    description           Description of the metric
+         * @param[in]    initial_value         Value with which to initialise the metric
+         * @param[in]    true_rep              String representation of the metric when its value is @c true
+         * @param[in]    false_rep             String representation of the metric when its value is @c false
+         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         *
+         * @return a handle to the created metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         BoolHandle create_metric(const BOOL, const std::string name, const std::string description,
                 const bool initial_value = false, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
                 const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
@@ -1449,31 +2550,121 @@ namespace measuro
             return metric;
         }
 
+        /*!
+         * Creates a Throttle object for use with an unsigned metric. Throttle
+         * objects impose limits on the rate of operations performed on a
+         * metric.
+         *
+         * @param[in]    metric        The metric to throttle
+         * @param[in]    time_limit    The minimum number of milliseconds between updates of the metric
+         * @param[in]    op_limit      The number of attempted update operations between each actual update of the metric
+         *
+         * @return the created Throttle object
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         UintThrottle create_throttle(UintHandle & metric, const std::chrono::milliseconds time_limit, std::uint64_t op_limit = 1)
         {
             return UintThrottle(metric, time_limit, op_limit, m_time_function);
         }
 
+        /*!
+         * Creates a Throttle object for use with an signed metric. Throttle
+         * objects impose limits on the rate of operations performed on a
+         * metric.
+         *
+         * @param[in]    metric        The metric to throttle
+         * @param[in]    time_limit    The minimum number of milliseconds between updates of the metric
+         * @param[in]    op_limit      The number of attempted update operations between each actual update of the metric
+         *
+         * @return the created Throttle object
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         IntThrottle create_throttle(IntHandle & metric, const std::chrono::milliseconds time_limit, std::uint64_t op_limit = 1)
         {
             return IntThrottle(metric, time_limit, op_limit, m_time_function);
         }
 
+        /*!
+         * Creates a Throttle object for use with a float metric. Throttle
+         * objects impose limits on the rate of operations performed on a
+         * metric.
+         *
+         * @param[in]    metric        The metric to throttle
+         * @param[in]    time_limit    The minimum number of milliseconds between updates of the metric
+         * @param[in]    op_limit      The number of attempted update operations between each actual update of the metric
+         *
+         * @return the created Throttle object
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         FloatThrottle create_throttle(FloatHandle & metric, const std::chrono::milliseconds time_limit, std::uint64_t op_limit = 1)
         {
             return FloatThrottle(metric, time_limit, op_limit, m_time_function);
         }
 
+        /*!
+         * Creates a Throttle object for use with an string metric. Throttle
+         * objects impose limits on the rate of operations performed on a
+         * metric.
+         *
+         * @param[in]    metric        The metric to throttle
+         * @param[in]    time_limit    The minimum number of milliseconds between updates of the metric
+         * @param[in]    op_limit      The number of attempted update operations between each actual update of the metric
+         *
+         * @return the created Throttle object
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         StringThrottle create_throttle(StringHandle & metric, const std::chrono::milliseconds time_limit, std::uint64_t op_limit = 1)
         {
             return StringThrottle(metric, time_limit, op_limit, m_time_function);
         }
 
+        /*!
+         * Creates a Throttle object for use with an bool metric. Throttle
+         * objects impose limits on the rate of operations performed on a
+         * metric.
+         *
+         * @param[in]    metric        The metric to throttle
+         * @param[in]    time_limit    The minimum number of milliseconds between updates of the metric
+         * @param[in]    op_limit      The number of attempted update operations between each actual update of the metric
+         *
+         * @return the created Throttle object
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         BoolThrottle create_throttle(BoolHandle & metric, const std::chrono::milliseconds time_limit, std::uint64_t op_limit = 1)
         {
             return BoolThrottle(metric, time_limit, op_limit, m_time_function);
         }
 
+        /*!
+         * Looks up an unsigned metric by name. Avoid performing lookups in
+         * performance-critical code. Instead, keep the metric handle returned
+         * on creation and manipulate that directly.
+         *
+         * @param[in]            Must be UINT::KIND
+         * @param[in]    name    Name of the metric to look up
+         *
+         * @return a handle to the found metric
+         *
+         * @throws MetricNameError
+         * @throws MetricTypeError
+         *
+         * @remarks thread-safe
+         */
         UintHandle operator()(const UINT, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -1483,6 +2674,21 @@ namespace measuro
             return m_uint_metrics[entry->second.second];
         }
 
+        /*!
+         * Looks up an signed metric by name. Avoid performing lookups in
+         * performance-critical code. Instead, keep the metric handle returned
+         * on creation and manipulate that directly.
+         *
+         * @param[in]            Must be INT::KIND
+         * @param[in]    name    Name of the metric to look up
+         *
+         * @return a handle to the found metric
+         *
+         * @throws MetricNameError
+         * @throws MetricTypeError
+         *
+         * @remarks thread-safe
+         */
         IntHandle operator()(const INT, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -1492,6 +2698,21 @@ namespace measuro
             return m_int_metrics[entry->second.second];
         }
 
+        /*!
+         * Looks up an float metric by name. Avoid performing lookups in
+         * performance-critical code. Instead, keep the metric handle returned
+         * on creation and manipulate that directly.
+         *
+         * @param[in]            Must be FLOAT::KIND
+         * @param[in]    name    Name of the metric to look up
+         *
+         * @return a handle to the found metric
+         *
+         * @throws MetricNameError
+         * @throws MetricTypeError
+         *
+         * @remarks thread-safe
+         */
         FloatHandle operator()(const FLOAT, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -1501,6 +2722,21 @@ namespace measuro
             return m_float_metrics[entry->second.second];
         }
 
+        /*!
+         * Looks up a string metric by name. Avoid performing lookups in
+         * performance-critical code. Instead, keep the metric handle returned
+         * on creation and manipulate that directly.
+         *
+         * @param[in]            Must be STR::KIND
+         * @param[in]    name    Name of the metric to look up
+         *
+         * @return a handle to the found metric
+         *
+         * @throws MetricNameError
+         * @throws MetricTypeError
+         *
+         * @remarks thread-safe
+         */
         StringHandle operator()(const STR, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -1510,6 +2746,21 @@ namespace measuro
             return m_str_metrics[entry->second.second];
         }
 
+        /*!
+         * Looks up a bool metric by name. Avoid performing lookups in
+         * performance-critical code. Instead, keep the metric handle returned
+         * on creation and manipulate that directly.
+         *
+         * @param[in]            Must be BOOL::KIND
+         * @param[in]    name    Name of the metric to look up
+         *
+         * @return a handle to the found metric
+         *
+         * @throws MetricNameError
+         * @throws MetricTypeError
+         *
+         * @remarks thread-safe
+         */
         BoolHandle operator()(const BOOL, const std::string name) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -1519,17 +2770,36 @@ namespace measuro
             return m_bool_metrics[entry->second.second];
         }
 
+        /*!
+         * Renders any metric in the registry whose name begins with
+         * @c name_prefix using the provided Renderer object.
+         *
+         * @param[in]    renderer       Renderer to use for rendering the metrics
+         * @param[in]    name_prefix    Prefix of the metric names to be rendered
+         *
+         * @remarks thread-safe
+         */
         void render(Renderer & renderer, const std::string & name_prefix) const noexcept(false)
         {
             render_with_prefix(renderer, name_prefix);
         }
 
+        /*!
+         * @see Registry::render(Renderer &, const std::string &)
+         */
         void render(Renderer & renderer, const char * name_prefix) const noexcept(false)
         {
             std::string str_prefix(name_prefix);
             render_with_prefix(renderer, str_prefix);
         }
 
+        /*!
+         * Renders all metrics in the registry.
+         *
+         * @param[in]    renderer    Renderer to use for rendering the metrics
+         *
+         * @remarks thread-safe
+         */
         void render(Renderer & renderer) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -1543,13 +2813,15 @@ namespace measuro
             }
         }
 
-        void cancel_render_schedule() noexcept(false)
-        {
-            std::lock_guard<std::mutex> lock(m_registry_mutex);
-
-            m_sched = nullptr;
-        }
-
+        /*!
+         * Schedules a regular render operation. The render operations will be
+         * performed in a different thread. Returns immediately.
+         *
+         * @param[in]    renderer    Renderer to use for rendering the metrics
+         * @param[in]    interval    Interval, in seconds, between each render operation
+         *
+         * @remarks thread-safe
+         */
         void render_schedule(Renderer & renderer, const std::chrono::seconds interval) noexcept(false)
         {
             std::lock_guard<std::mutex> lock(m_registry_mutex);
@@ -1557,7 +2829,82 @@ namespace measuro
             m_sched = std::make_shared<RenderSchedule>((*this), renderer, interval);
         }
 
+        /*!
+         * Cancels a previously-scheduled render operation.
+         *
+         * @remarks thread-safe
+         */
+        void cancel_render_schedule() noexcept(false)
+        {
+            std::lock_guard<std::mutex> lock(m_registry_mutex);
+
+            m_sched = nullptr;
+        }
+
     private:
+        /*!
+         * @class RendererContext
+         *
+         * @brief Provides a runtime context for Renderer objects
+         *
+         * Uses RAII to ensure that a renderer object's @c before() and
+         * @c after() methods are called at the appropriate times.
+         *
+         * @remarks thread-hostile
+         */
+        class RendererContext
+        {
+        public:
+            /*!
+             * Constructor.
+             *
+             * @param[in]    renderer    The renderer to contextualise
+             */
+            RendererContext(Renderer & renderer) noexcept(false) : m_renderer(renderer)
+            {
+                m_renderer.suppressed_exception(false);
+                m_renderer.before();
+            }
+
+            /*!
+             * Destructor. Renderer exceptions are suppressed to prevent them
+             * propagating out of the destructor. This can be detected by
+             * calling Renderer::suppressed_exception()
+             */
+            ~RendererContext() noexcept
+            {
+                // Prevent exceptions in Renderer::after() from leaving the destructor
+                try
+                {
+                    m_renderer.after();
+                }
+                catch (...)
+                {
+                    m_renderer.suppressed_exception(true);
+                    return;
+                }
+            }
+
+        private:
+            Renderer & m_renderer; //!< Renderer being contextualised
+        };
+
+        /*!
+         * Adds a set of target metrics to a given SumMetric.
+         *
+         * @param[in]    metric     The SumMetric to which @c targets should be added
+         * @param[in]    targets    Metrics to be summed by @c metric
+         *
+         * @par Template arguments
+         *
+         * @par
+         * M - the SumMetric handle type
+         *
+         * @par
+         * T - the target metric handle type
+         *
+         * @remarks thread-safe
+         */
         template<typename M, typename T>
         void initialise_sum_with_targets(M metric, const std::initializer_list<T> targets) const noexcept(false)
         {
@@ -1567,6 +2914,9 @@ namespace measuro
             }
         }
 
+        /*!
+         * @see Registry::render(Renderer &, const std::string &)
+         */
         void render_with_prefix(Renderer & renderer, const std::string & name_prefix) const noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
@@ -1583,33 +2933,19 @@ namespace measuro
             }
         }
 
-        class RendererContext
-        {
-        public:
-            RendererContext(Renderer & renderer) noexcept(false) : m_renderer(renderer)
-            {
-                m_renderer.suppressed_exception(false);
-                m_renderer.before();
-            }
-
-            ~RendererContext() noexcept
-            {
-                // Prevent exceptions in Renderer::after() from leaving the destructor
-                try
-                {
-                    m_renderer.after();
-                }
-                catch (...)
-                {
-                    m_renderer.suppressed_exception(true);
-                    return;
-                }
-            }
-
-        private:
-            Renderer & m_renderer;
-        };
-
+        /*!
+         * Looks a metric up by its name and kind.
+         *
+         * @param[in]    name             Name of the metric to lookup
+         * @param[in]    expected_kind    Kind of the metric to lookup
+         *
+         * @return iterator to a pair describing the found metric and its index in the kind-specific vector
+         *
+         * @throws MetricNameError
+         * @throws MetricTypeError
+         *
+         * @remarks thread-safe
+         */
         std::map<std::string, std::pair<std::shared_ptr<Metric>, std::uint64_t> >::const_iterator
         lookup(const std::string & name, const Metric::Kind expected_kind) const noexcept(false)
         {
@@ -1631,6 +2967,17 @@ namespace measuro
             return entry;
         }
 
+        /*!
+         * Registers a metric that can't be looked up by name with the
+         * registry against the specified name.
+         *
+         * @param[in]    metric_name    Name of the metric
+         * @param[in]    metric         Metric object
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         template<typename T>
         void register_metric(const std::string & metric_name, std::shared_ptr<T > & metric) noexcept(false)
         {
@@ -1644,6 +2991,18 @@ namespace measuro
             m_metrics[metric_name] = std::pair<std::shared_ptr<Metric>, std::uint64_t>(metric, std::numeric_limits<std::uint64_t>::max());
         }
 
+        /*!
+         * Registers a metric that can be looked up by name with the registry
+         * against the specified name.
+         *
+         * @param[in]    metric_name        Name of the metric
+         * @param[in]    metric             Metric object
+         * @param[in]    metric_registry    Kind-specific registry in which to store the metric
+         *
+         * @throws MetricNameError
+         *
+         * @remarks thread-safe
+         */
         template<typename T>
         void register_metric(const std::string & metric_name, std::shared_ptr<T > & metric, std::vector<std::shared_ptr<T > > & metric_registry) noexcept(false)
         {
@@ -1658,17 +3017,17 @@ namespace measuro
             m_metrics[metric_name] = std::pair<std::shared_ptr<Metric>, std::uint64_t>(metric, metric_registry.size() - 1);
         }
 
-        mutable std::mutex m_registry_mutex;
-        std::function<std::chrono::steady_clock::time_point ()> m_time_function;
-        std::map<std::string, std::pair<std::shared_ptr<Metric>, std::uint64_t> > m_metrics;
+        mutable std::mutex m_registry_mutex; //!< Mutex for the registry
+        std::function<std::chrono::steady_clock::time_point ()> m_time_function; //!< Function used to determine the time
+        std::map<std::string, std::pair<std::shared_ptr<Metric>, std::uint64_t> > m_metrics; //!< Generic metric store
 
-        std::vector<UintHandle> m_uint_metrics;
-        std::vector<IntHandle> m_int_metrics;
-        std::vector<FloatHandle> m_float_metrics;
-        std::vector<StringHandle> m_str_metrics;
-        std::vector<BoolHandle> m_bool_metrics;
+        std::vector<UintHandle> m_uint_metrics; //!< Unsigned metric store
+        std::vector<IntHandle> m_int_metrics; //!< Signed metric store
+        std::vector<FloatHandle> m_float_metrics; //!< Float metric store
+        std::vector<StringHandle> m_str_metrics; //!< String metric store
+        std::vector<BoolHandle> m_bool_metrics; //!< Bool metric store
 
-        std::shared_ptr<RenderSchedule> m_sched;
+        std::shared_ptr<RenderSchedule> m_sched; //!< Scheduler for scheduling regular render operations
     };
 }
 
