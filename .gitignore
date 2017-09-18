@@ -16,3 +16,4 @@ _CPack_Packages
 *_testexe
 Debug/
 docs/code/
+.pydevproject
