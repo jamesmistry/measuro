@@ -18,4 +18,4 @@ else()
   target_link_libraries(measuro_unit_testexe gtest gtest_main pthread)
 endif()
 
-add_test(measuro_unit_test ${CMAKE_CURRENT_SOURCE_DIR}/measuro_unit_testexe)
+add_test(measuro_unit_test valgrind --error-exitcode=101 --tool=memcheck --leak-check=yes --show-leak-kinds=definite,possible --track-origins=yes ${CMAKE_CURRENT_SOURCE_DIR}/measuro_unit_testexe)
