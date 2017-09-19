@@ -1967,29 +1967,29 @@ namespace measuro
 
     };
 
-    using UintHandle = std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> >;
-    using IntHandle = std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> >;
-    using FloatHandle = std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> >;
-    using RateOfUintHandle = std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >;
-    using RateOfIntHandle = std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >;
-    using RateOfFloatHandle = std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >;
-    using RateOfSumOfUintHandle = std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >;
-    using RateOfSumOfIntHandle = std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >;
-    using RateOfSumOfFloatHandle = std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >;
-    using SumOfUintHandle = std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >;
-    using SumOfIntHandle = std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >;
-    using SumOfFloatHandle = std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >;
-    using SumOfRateOfUintHandle = std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >;
-    using SumOfRateOfIntHandle = std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >;
-    using SumOfRateOfFloatHandle = std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >;
-    using StringHandle = std::shared_ptr<StringMetric>;
-    using BoolHandle = std::shared_ptr<BoolMetric>;
+    using UintHandle = std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> >; //!< Handle to an unsigned metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using IntHandle = std::shared_ptr<NumberMetric<Metric::Kind::INT, std::int64_t> >; //!< Handle to an signed metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using FloatHandle = std::shared_ptr<NumberMetric<Metric::Kind::FLOAT, float> >; //!< Handle to an float metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using RateOfUintHandle = std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >; //!< Handle to a rate of unsigned metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using RateOfIntHandle = std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >; //!< Handle to a rate of signed metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using RateOfFloatHandle = std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >; //!< Handle to a rate of float metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using RateOfSumOfUintHandle = std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >; //!< Handle to a rate of sum of unsigned metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using RateOfSumOfIntHandle = std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >; //!< Handle to a rate of sum of signed metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using RateOfSumOfFloatHandle = std::shared_ptr<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >; //!< Handle to a rate of sum of float metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using SumOfUintHandle = std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >; //!< Handle to a sum of unsigned metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using SumOfIntHandle = std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >; //!< Handle to a sum of signed metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using SumOfFloatHandle = std::shared_ptr<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >; //!< Handle to a sum of float metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using SumOfRateOfUintHandle = std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >; //!< Handle to a sum of rate of unsigned metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using SumOfRateOfIntHandle = std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >; //!< Handle to a sum of rate of signed metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using SumOfRateOfFloatHandle = std::shared_ptr<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >; //!< Handle to a sum of rate of float metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using StringHandle = std::shared_ptr<StringMetric>; //!< Handle to a string metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
+    using BoolHandle = std::shared_ptr<BoolMetric>; //!< Handle to a boolean metric. Behind the scenes this is a std::shared_ptr, so must be de-referenced before use
 
-    using UintThrottle = Throttle<NumberMetric<Metric::Kind::UINT, std::uint64_t> >;
-    using IntThrottle = Throttle<NumberMetric<Metric::Kind::INT, std::int64_t> >;
-    using FloatThrottle = Throttle<NumberMetric<Metric::Kind::FLOAT, float> >;
-    using StringThrottle = Throttle<StringMetric>;
-    using BoolThrottle = Throttle<BoolMetric>;
+    using UintThrottle = Throttle<NumberMetric<Metric::Kind::UINT, std::uint64_t> >; //!< Throttle object throttling an unsigned metric
+    using IntThrottle = Throttle<NumberMetric<Metric::Kind::INT, std::int64_t> >; //!< Throttle object throttling a signed metric
+    using FloatThrottle = Throttle<NumberMetric<Metric::Kind::FLOAT, float> >; //!< Throttle object throttling a float metric
+    using StringThrottle = Throttle<StringMetric>; //!< Throttle object throttling a string metric
+    using BoolThrottle = Throttle<BoolMetric>; //!< Throttle object throttling a boolean metric
 
     /*!
      * @class Registry
@@ -2088,7 +2088,7 @@ namespace measuro
          * @param[in]    initial_value         Value with which to initialise the metric
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2112,7 +2112,7 @@ namespace measuro
          * @param[in]    initial_value         Value with which to initialise the metric
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2136,7 +2136,7 @@ namespace measuro
          * @param[in]    initial_value         Value with which to initialise the metric
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2162,7 +2162,7 @@ namespace measuro
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2189,7 +2189,7 @@ namespace measuro
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2216,7 +2216,7 @@ namespace measuro
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2245,7 +2245,7 @@ namespace measuro
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2274,7 +2274,7 @@ namespace measuro
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2303,7 +2303,7 @@ namespace measuro
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2329,7 +2329,7 @@ namespace measuro
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2359,7 +2359,7 @@ namespace measuro
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2389,7 +2389,7 @@ namespace measuro
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2420,7 +2420,7 @@ namespace measuro
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2451,7 +2451,7 @@ namespace measuro
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2482,7 +2482,7 @@ namespace measuro
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2510,7 +2510,7 @@ namespace measuro
          * @param[in]    initial_value         Value with which to initialise the metric
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
@@ -2535,7 +2535,7 @@ namespace measuro
          * @param[in]    false_rep             String representation of the metric when its value is @c false
          * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
-         * @return a handle to the created metric
+         * @return a handle to the created metric, which must be de-referenced before use
          *
          * @throws MetricNameError
          *
