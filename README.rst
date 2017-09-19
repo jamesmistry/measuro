@@ -7,7 +7,8 @@ modern C++.
 Key Features
 ------------
 
-- Header-only library written in pure C++14 with no external dependencies
+- Header-only library written in pure C++14 with no external runtime 
+  dependencies
 - An intuitive, thread-safe interface for manipulating numeric, string and 
   boolean metrics
 - Sum numeric metrics together automatically using the special 'sum' metric 
@@ -89,13 +90,15 @@ Running the Tests
 To run the static analysis, unit tests and system test, from the 
 repository root::
 
+    $ cmake ./
     $ make
     $ make test
 
 To run the benchmarking program, from the repository root::
 
-    $ make
-    $ test/benchmark/measuro_benchmark_testexe 
+    $ cmake ./
+    $ make measuro_benchmark_testexe
+    $ test/benchmark/measuro_benchmark_testexe
 
 Versioning
 ----------
