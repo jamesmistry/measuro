@@ -2,7 +2,7 @@
 #include <memory>
 #include <cstdint>
 
-#include "Measuro.hpp"
+#include "measuro.hpp"
 #include "stubs.hpp"
 
 namespace measuro

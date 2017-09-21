@@ -34,7 +34,7 @@
 #include <vector>
 #include <iostream>
 
-#include "Measuro.hpp"
+#include "measuro.hpp"
 
 using namespace measuro;
 

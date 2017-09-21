@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "Measuro.hpp"
+#include "measuro.hpp"
 #include "stubs.hpp"
 
 namespace measuro

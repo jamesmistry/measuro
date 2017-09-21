@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "Measuro.hpp"
+#include "measuro.hpp"
 #include "stubs.hpp"
 
 namespace measuro

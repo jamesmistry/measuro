@@ -4,7 +4,7 @@
 #include <string>
 #include <thread>
 
-#include "Measuro.hpp"
+#include "measuro.hpp"
 #include "stubs.hpp"
 
 namespace measuro
