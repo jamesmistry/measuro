@@ -11,7 +11,9 @@ if (CMAKE_COMPILER_IS_GNUCC)
     set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
-set(CMAKE_INSTALL_PREFIX "/usr/local/include/measuro")
+install(FILES ${SRC_OUTPUT_PATH}/measuro.hpp DESTINATION .)
+
+set(CMAKE_INSTALL_PREFIX "/usr/include/measuro")
 set(CPACK_PACKAGE_VERSION ${VERSION})
 set(CPACK_PACKAGE_NAME "measuro-devel")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Measuro: a fast, easy-to-use header library for creating program metrics in modern C++")
