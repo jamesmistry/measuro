@@ -81,6 +81,18 @@ from the repository root::
     $ cmake ./
     $ cp build/src/measuro.hpp /your/app/src
 
+Note that the way you include the Measuro header file in your source will 
+differ depending on whether or not you are using a development package. 
+
+If you are using a development package, you will need to::
+
+    #include <measuro/measuro.hpp>
+
+If you have copied the buildable Measuro header into your own source tree, you
+will need to::
+
+    #include "measuro.hpp"
+
 **Documentation**
 
 Comprehensive Measuro documentation is located at: 
