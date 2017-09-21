@@ -17,3 +17,4 @@ _CPack_Packages
 Debug/
 docs/code/
 .pydevproject
+measuro-devel-*
