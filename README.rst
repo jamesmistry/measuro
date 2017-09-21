@@ -53,21 +53,33 @@ To run the Measuro test suite you will need:
 **Installing**
 
 It's recommended that you generate a development package to install on your 
-system. To do this, from the repository root::
+system. To do this on an RPM-based system, from the repository root::
 
-    $ cmake ./
+    $ cmake ./ -DCPACK_GENERATOR=RPM
+
+To do this on a DEB-based system, from the repository root::
+
+    $ cmake ./ -DCPACK_GENERATOR=DEB
+
+Then::
+
     $ make package
 
-Then, using your system's package manager, install the generated package::
+A package file will be generated in the repository root. You can install it
+using your system's package manager, for example::
 
-    $ sudo apt install measuro-devel.deb
+    $ sudo yum install measuro-devel-x.y-z.rpm
+
+Or::
+
+    $ sudo dpkg -i measuro-devel-x.y-z.deb
 
 If you don't want to - or can't - use a development package, you can copy the 
 buildable version of the Measuro header file to your source tree. To do this,
 from the repository root::
 
     $ cmake ./
-    $ cp build/src/Measuro.hpp /your/app/src
+    $ cp build/src/measuro.hpp /your/app/src
 
 **Documentation**
 
