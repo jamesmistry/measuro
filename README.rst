@@ -120,7 +120,7 @@ repository root::
 
 To run the benchmarking program, from the repository root::
 
-    $ cmake ./
+    $ cmake -DCMAKE_BUILD_TYPE=Release ./
     $ make measuro_benchmark_testexe
     $ test/benchmark/measuro_benchmark_testexe
 
