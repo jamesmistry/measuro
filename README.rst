@@ -4,6 +4,10 @@ Measuro
 Measuro: A fast, easy-to-use header library for creating program metrics in 
 modern C++.
 
+Comprehensive Measuro documentation - including guidance for developers and
+code examples - is located at:
+<https://measuro.readthedocs.io/en/0.1.0/>
+
 Key Features
 ------------
 
