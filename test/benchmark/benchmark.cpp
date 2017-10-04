@@ -47,6 +47,7 @@ using namespace measuro;
 const auto TEST_DURATION = std::chrono::seconds(5);
 const auto RUN_COUNT = 3;
 const std::vector<std::string> prime_keys = {"KEY_A", "KEY_B", "KEY_C", "KEY_D", "KEY_E", "KEY_F"};
+int64_t hook_value = 0;
 
 struct Metrics
 {
@@ -97,6 +98,11 @@ bool is_prime(std::size_t n)
         i += 6;
     }
     return true;
+}
+
+void hook_handler(const Metric & m)
+{
+    hook_value = int64_t(m);
 }
 
 std::int64_t hard_work(bool use_metrics, bool use_throttle, Metrics & m)
@@ -164,8 +170,17 @@ int main(int argc, char * argv[])
     }
     throttle_test_count /= RUN_COUNT;
 
+    m.test_count->register_hook(hook_handler);
+    float hook_test_count = 0;
+    for (auto run=0;run<RUN_COUNT;++run)
+    {
+        hook_test_count += hard_work(true, false, m);
+    }
+    hook_test_count /= RUN_COUNT;
+
     float score = 0.0f;
     float throttle_score = 0.0f;
+    float hook_score = 0.0f;
     if ((no_metrics_test_count > 0) && (metrics_test_count > 0))
     {
         score = 1 - (float(float(no_metrics_test_count) / float(metrics_test_count)) - 1);
@@ -187,14 +202,27 @@ int main(int argc, char * argv[])
         {
             throttle_score = 1.0f;
         }
+
+        hook_score = 1 - (float(float(no_metrics_test_count) / float(hook_test_count)) - 1);
+        if (hook_score < 0)
+        {
+            hook_score = 0.0f;
+        }
+        else if (hook_score > 1)
+        {
+            hook_score = 1.0f;
+        }
     }
 
-    std::cout << "Work items, without metrics = " << no_metrics_test_count << "\n";
-    std::cout << "Work items, with metrics    = " << metrics_test_count << "\n";
-    std::cout << "Score without throttle      = " << score << "\n";
-    std::cout << "                              ^ (closer to 1.0 is better)" << std::endl;
-    std::cout << "Score with throttle         = " << throttle_score << "\n";
-    std::cout << "                              ^ (closer to 1.0 is better)" << std::endl;
+    std::cout << "Hook value = " << hook_value << "\n";
+    std::cout << "Work items, without metrics   = " << no_metrics_test_count << "\n";
+    std::cout << "Work items, with metrics      = " << metrics_test_count << "\n";
+    std::cout << "Score without throttle        = " << score << "\n";
+    std::cout << "                                ^ (closer to 1.0 is better)\n";
+    std::cout << "Score with throttle           = " << throttle_score << "\n";
+    std::cout << "                                ^ (closer to 1.0 is better)\n";
+    std::cout << "Score with hook (no throttle) = " << hook_score << "\n";
+    std::cout << "                                ^ (closer to 1.0 is better)" << std::endl;
 
     return 0;
 }
