@@ -80,7 +80,7 @@ namespace measuro
     /*!
      * @class MetricNameError
      *
-     * @brief An exception describing runtime errors that occur because of a metric name that is in some way incompatible.
+     * @brief Describes an error that occurs because of an incompatible metric name.
      *
      * @remarks thread-safe
      */
@@ -100,7 +100,7 @@ namespace measuro
     /*!
      * @class MetricTypeError
      *
-     * @brief An exception describing runtime errors that occur because of a metric type mismatch.
+     * @brief Describes an error that occurs because of an incompatible metric type.
      *
      * @remarks thread-safe
      */
@@ -113,6 +113,26 @@ namespace measuro
          * @param[in]    description    Description of the error
          */
         MetricTypeError(const std::string description) : MeasuroError(description)
+        {
+        }
+    };
+
+    /*!
+     * @class MetricCastError
+     *
+     * @brief Describes an error due to an attempt to cast a metric to an invalid type.
+     *
+     * @remarks thread-safe
+     */
+    class MetricCastError : public MeasuroError
+    {
+    public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    description    Description of the error
+         */
+        MetricCastError(const std::string description) : MeasuroError(description)
         {
         }
     };
@@ -241,13 +261,13 @@ namespace measuro
          * @param[in]    unit                  The units of the metric's value
          * @param[in]    description           A short description of what the metric measures, as it will appear in rendered output
          * @param[in]    time_function         The function to use for determining the time. Used for simulation in testing
-         * @param[in]    cascade_rate_limit    The minimum number of milliseconds between invoking hooks registered by other metrics. Used to limit frequency of costly updates. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       The minimum number of milliseconds between invoking hooks registered by other metrics. Used to limit frequency of costly updates. Specify std::chrono::milliseconds::zero() to disable rate limiting
          */
         Metric(const Kind kind, const std::string & name, const std::string & unit, const std::string & description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : m_kind(kind), m_name(name), m_unit(unit), m_description(description),
-          m_last_hook_update(time_function()), m_time_function(time_function), m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : m_time_function(time_function), m_kind(kind), m_name(name), m_unit(unit), m_description(description),
+          m_last_hook_update(m_time_function()), m_hook_rate_limit(hook_rate_limit), m_has_hooks(false)
         {
         }
 
@@ -258,9 +278,9 @@ namespace measuro
          */
         Metric(const Kind kind, const char * name, const char * unit, const char * description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : m_kind(kind), m_name(name), m_unit(unit), m_description(description),
-          m_last_hook_update(time_function()), m_time_function(time_function), m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : m_time_function(time_function), m_kind(kind), m_name(name), m_unit(unit), m_description(description),
+          m_last_hook_update(m_time_function()), m_hook_rate_limit(hook_rate_limit), m_has_hooks(false)
         {
         }
 
@@ -271,9 +291,9 @@ namespace measuro
          */
         Metric(const Kind kind, const std::string & name, const std::string & description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : m_kind(kind), m_name(name), m_description(description),
-          m_last_hook_update(time_function()), m_time_function(time_function), m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : m_time_function(time_function), m_kind(kind), m_name(name), m_description(description),
+          m_last_hook_update(m_time_function()), m_hook_rate_limit(hook_rate_limit), m_has_hooks(false)
         {
         }
 
@@ -284,9 +304,9 @@ namespace measuro
          */
         Metric(const Kind kind, const char * name, const char * description,
                 std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : m_kind(kind), m_name(name), m_description(description), m_last_hook_update(time_function()), m_time_function(time_function),
-          m_cascade_limit(cascade_rate_limit), m_has_hooks(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : m_time_function(time_function), m_kind(kind), m_name(name), m_description(description), m_last_hook_update(m_time_function()),
+          m_hook_rate_limit(hook_rate_limit), m_has_hooks(false)
         {
         }
 
@@ -396,18 +416,84 @@ namespace measuro
         virtual operator std::string() const = 0;
 
         /*!
+         * Cast the metric to an unsigned 64-bit integer. Only call this method
+         * if the metric kind is @c Metric::Kind::UINT or a
+         * @c Metric::Kind::SUM targeting this metric kind.
+         *
+         * @throws MetricCastError
+         */
+        virtual explicit operator std::uint64_t() const
+        {
+            throw MetricCastError("Metric " + m_name + " of kind " + kind_name() + " cannot be represented as a std::uint64_t");
+
+            return 0;
+        }
+
+        /*!
+         * Cast the metric to a signed 64-bit integer. Only call this method if
+         * the metric kind is @c Metric::Kind::INT or a
+         * @c Metric::Kind::SUM targeting this metric kind.
+         *
+         * @throws MetricCastError
+         */
+        virtual explicit operator std::int64_t() const
+        {
+            throw MetricCastError("Metric " + m_name + " of kind " + kind_name() + " cannot be represented as a std::int64_t");
+
+            return 0;
+        }
+
+        /*!
+         * Cast the metric to a float. Only call this method if the metric kind
+         * is @c Metric::Kind::FLOAT, @c Metric::Kind::Rate or a
+         * @c Metric::Kind::SUM targeting one of these metric kinds.
+         *
+         * @throws MetricCastError
+         */
+        virtual explicit operator float() const
+        {
+            throw MetricCastError("Metric " + m_name + " of kind " + kind_name() + " cannot be represented as a float");
+
+            return 0.0f;
+        }
+
+        /*!
+         * Cast the metric to a bool. Only call this method if the metric kind
+         * is @c Metric::Kind::BOOL.
+         *
+         * @throws MetricCastError
+         */
+        virtual explicit operator bool() const
+        {
+            throw MetricCastError("Metric " + m_name + " of kind " + kind_name() + " cannot be represented as a bool");
+
+            return false;
+        }
+
+        /*!
+         * Used by inheriting metric classes to separate the evaluation of the
+         * metric value (performed by @c calculate()) from the representation
+         * as a native type or string (performed by the relevant @code{.cpp}
+         * operator T method @endcode overload).
+         */
+        virtual void calculate()
+        {
+            return;
+        }
+
+        /*!
          * Registers a "hook" function against the metric that will be called
-         * when the metric's value changes, in accordance with the cascade rate
+         * when the metric's value changes, in accordance with the hook rate
          * limit specified.
          *
          * The hook function must take one argument of type
-         * const std::chrono::steady_clock::time_point
+         * @code{.cpp} const measuro::Metric & @endcode
          *
          * @param[in]    registrant    Hook function to call
          *
          * @remarks thread-safe
          */
-        void register_hook(std::function<void (std::chrono::steady_clock::time_point update_time)> registrant) noexcept(false)
+        void register_hook(std::function<void (const Metric & metric)> registrant) noexcept(false)
         {
             // TODO: Replace with std::scoped_lock on migration to C++17
             std::lock_guard<std::mutex> lock(m_metric_mutex);
@@ -417,23 +503,23 @@ namespace measuro
         }
 
         /*!
-         * Gets the cascade rate limit value in effect for the metric. The
-         * cascade rate limit is the minimum number of milliseconds between
+         * Gets the hook rate limit value in effect for the metric. The
+         * hook rate limit is the minimum number of milliseconds between
          * hook function calls.
          *
-         * @return the cascade rate limit, in milliseconds
+         * @return the hook rate limit, in milliseconds
          *
          * @remarks thread-safe
          */
-        std::chrono::milliseconds cascade_rate_limit() const
+        std::chrono::milliseconds hook_rate_limit() const
         {
-            return m_cascade_limit;
+            return m_hook_rate_limit;
         }
 
     protected:
         /*!
          * Used by inheriting metric classes to perform the update of their
-         * underlying values in a way that respects cascade rate limits.
+         * underlying values in a way that respects hook rate limits.
          *
          * @param[in]    update_logic    The function that performs the underlying value update
          *
@@ -451,15 +537,15 @@ namespace measuro
             if (m_has_hooks)
             {
                 auto now = m_time_function();
-                if (((m_cascade_limit == std::chrono::milliseconds::zero()) ||
-                        (now - m_last_hook_update.load()) >= m_cascade_limit))
+                if (((m_hook_rate_limit == std::chrono::milliseconds::zero()) ||
+                        (now - m_last_hook_update.load()) >= m_hook_rate_limit))
                 {
                     // TODO: Replace with std::scoped_lock on migration to C++17
                     std::lock_guard<std::mutex> lock(m_metric_mutex);
 
                     for (auto hook : m_hooks)
                     {
-                        hook(now);
+                        hook(*this);
                     }
 
                     m_last_hook_update = now;
@@ -468,6 +554,7 @@ namespace measuro
         }
 
         mutable std::mutex m_metric_mutex; //!< Mutex for protecting concurrent access to the metric's members
+        std::function<std::chrono::steady_clock::time_point ()> m_time_function; //!< Function used to determine the time
 
     private:
         Kind m_kind; //!< Metric kind
@@ -475,9 +562,8 @@ namespace measuro
         std::string m_unit; //!< Metric unit
         std::string m_description; //!< Metric description
         std::atomic<std::chrono::steady_clock::time_point> m_last_hook_update; //!< Time the last hook functions were called
-        std::function<std::chrono::steady_clock::time_point ()> m_time_function; //!< Function used to determine the time
-        std::chrono::milliseconds m_cascade_limit; //!< Cascade rate limit, the minimum number of milliseconds between hook function calls
-        std::vector<std::function<void (std::chrono::steady_clock::time_point update_time)> > m_hooks; //!< Array of registered hook functions
+        std::chrono::milliseconds m_hook_rate_limit; //!< hook rate limit, the minimum number of milliseconds between hook function calls
+        std::vector<std::function<void (const Metric & metric)> > m_hooks; //!< Array of registered hook functions
         std::atomic<bool> m_has_hooks; //!< Are there any registered hooks? If not, a shortcut is taken in Metric::update
 
     };
@@ -528,11 +614,11 @@ namespace measuro
          * @param[in]    description           @see Metric::Metric
          * @param[in]    time_function         @see Metric::Metric
          * @param[in]    initial_value         Value with which to initialise the metric
-         * @param[in]    cascade_rate_limit    @see Metric::Metric
+         * @param[in]    hook_rate_limit    @see Metric::Metric
          */
         NumberMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const T initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(K, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
+                const T initial_value = 0, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(K, name, unit, description, time_function, hook_rate_limit), m_value(initial_value)
         {
         }
 
@@ -542,8 +628,8 @@ namespace measuro
          * @see NumberMetric::NumberMetric(const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const T initial_value, const std::chrono::milliseconds)
          */
         NumberMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const T initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(K, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
+                const T initial_value = 0, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(K, name, unit, description, time_function, hook_rate_limit), m_value(initial_value)
         {
         }
 
@@ -571,7 +657,7 @@ namespace measuro
          *
          * @remarks thread-safe
          */
-        explicit operator T() const noexcept
+        explicit operator T() const noexcept override final
         {
             return m_value;
         }
@@ -737,8 +823,8 @@ namespace measuro
          * @see NumberMetric
          */
         NumberMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const float initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::FLOAT, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
+                const float initial_value = 0, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::FLOAT, name, unit, description, time_function, hook_rate_limit), m_value(initial_value)
         {
         }
 
@@ -748,8 +834,8 @@ namespace measuro
          * @see NumberMetric
          */
         NumberMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const float initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::FLOAT, name, unit, description, time_function, cascade_rate_limit), m_value(initial_value)
+                const float initial_value = 0, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::FLOAT, name, unit, description, time_function, hook_rate_limit), m_value(initial_value)
         {
         }
 
@@ -778,7 +864,7 @@ namespace measuro
          *
          * @remarks thread-safe
          */
-        explicit operator float() const noexcept
+        explicit operator float() const noexcept override final
         {
             return m_value;
         }
@@ -806,11 +892,13 @@ namespace measuro
     /*!
      * @class RateMetric
      *
-     * @brief Tracks the rate of change of a "distance" NumberMetric object
+     * @brief Tracks the rate of change of a "distance" NumberMetric
      *
-     * A hook function is used to determine when the distance metric is
-     * updated. Currently this is the only metric class that uses hook
-     * functionality.
+     * The rate is always expressed per second. The rate is calculated only on
+     * calls to ::calculate, and even then at most once per second. The rest
+     * of the time, the metric's value is pulled from a cache. A result proxy
+     * function can be used to modify the calculated rate before it is stored.
+     * This is particularly useful for performing unit conversions.
      *
      * @par Template arguments
      *
@@ -832,45 +920,41 @@ namespace measuro
          * @param[in]    unit                  @see Metric::Metric
          * @param[in]    description           @see Metric::Metric
          * @param[in]    time_function         @see Metric::Metric
-         * @param[in]    cascade_rate_limit    @see Metric::Metric
+         * @param[in]    hook_rate_limit    @see Metric::Metric
          */
         RateMetric(std::shared_ptr<D> & distance, std::function<float (float)> result_proxy, const std::string & name, const std::string & unit, const std::string & description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_result_proxy(result_proxy),
-          m_last_distance(0), m_value(0.0f)
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::RATE, name, unit, description, time_function, hook_rate_limit), m_distance(distance), m_result_proxy(result_proxy),
+          m_last_distance(0), m_cache(0.0f)
         {
-            m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
         }
 
         /*!
          * @see RateMetric::RateMetric(std::shared_ptr<D> &, std::function<float (float)>, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
          */
         RateMetric(std::shared_ptr<D> & distance, std::function<float (float)> result_proxy, const char * name, const char * unit, const char * description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_result_proxy(result_proxy),
-          m_last_distance(0), m_value(0.0f)
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::RATE, name, unit, description, time_function, hook_rate_limit), m_distance(distance), m_result_proxy(result_proxy),
+          m_last_distance(0), m_cache(0.0f)
         {
-            m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
         }
 
         /*!
          * @see RateMetric::RateMetric(std::shared_ptr<D> &, std::function<float (float)>, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
          */
         RateMetric(std::shared_ptr<D> & distance, const std::string & name, const std::string & unit, const std::string & description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_last_distance(0), m_value(0.0f)
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::RATE, name, unit, description, time_function, hook_rate_limit), m_distance(distance), m_last_distance(0), m_cache(0.0f)
         {
-            m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
         }
 
         /*!
          * @see RateMetric::RateMetric(std::shared_ptr<D> &, std::function<float (float)>, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
          */
         RateMetric(std::shared_ptr<D> & distance, const char * name, const char * unit, const char * description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::RATE, name, unit, description, time_function, cascade_rate_limit), m_distance(distance), m_last_distance(0), m_value(0.0f)
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::RATE, name, unit, description, time_function, hook_rate_limit), m_distance(distance), m_last_distance(0), m_cache(0.0f)
         {
-            m_distance->register_hook(std::bind(&RateMetric::hook_handler, this, std::placeholders::_1));
         }
 
         RateMetric(const RateMetric &) = delete;
@@ -887,7 +971,7 @@ namespace measuro
         operator std::string() const noexcept(false) override final
         {
             std::stringstream formatter;
-            formatter << std::fixed << std::setprecision(2) << m_value;
+            formatter << std::fixed << std::setprecision(2) << m_cache;
             return formatter.str();
         }
 
@@ -896,9 +980,9 @@ namespace measuro
          *
          * @remarks thread-safe
          */
-        explicit operator float() const noexcept
+        explicit operator float() const noexcept override final
         {
-            return m_value;
+            return m_cache;
         }
 
         /*!
@@ -917,38 +1001,52 @@ namespace measuro
             return ((m_result_proxy) ? m_result_proxy(val) : val);
         }
 
-    private:
         /*!
-         * Handles callbacks from the distance metric and calculates its rate
-         * of change.
+         * Calculates the rate. Internally the calculations are cached.
+         * The cache is updated at most once per second, so there is no need to
+         * (but little harm in) calling this method more frequently than that.
          *
-         * @param[in]    update_time    Time of the hook call
+         * As with all metric kinds this method is called automatically before
+         * rendering, thus ensuring the metric's value is up-to-date prior to
+         * the render operation.
          *
-         * @remarks thread-safe if proxy function is also thread-safe
+         * If the metric's value is needed outside of a render operation, it's
+         * recommended that rather than call this method applications instead
+         * rely on their regular render operation (assuming there is one) to
+         * keep the cache up-to-date. Reading the value is then simply a case
+         * of casting the metric to a @c float or @c std::string
          */
-        void hook_handler(const std::chrono::steady_clock::time_point update_time) noexcept(false)
+        void calculate() override final
         {
-            update([this, & update_time]()
+            auto now_time = m_time_function();
+
+            if (now_time - m_last_calc_time >= std::chrono::milliseconds(1000))
             {
-                auto time_elapsed = float(std::chrono::duration_cast<std::chrono::milliseconds>(update_time - m_last_hook_time).count()) / 1000;
-                auto distance_travelled = float((typename D::NativeType)(*m_distance));
-
-                if (time_elapsed != 0.0) // Avoid div by zero
+                update([this, & now_time]()
                 {
-                    float value = ((distance_travelled - m_last_distance) / time_elapsed);
-                    m_value = proxy_value(value);
-                }
+                    float distance = static_cast<typename D::NativeType>(*m_distance);
 
-                m_last_distance = distance_travelled;
-                m_last_hook_time = update_time;
-            });
+                    auto time_elapsed_sec = float(std::chrono::duration_cast<std::chrono::milliseconds>(now_time - m_last_calc_time).count()) / 1000;
+                    auto distance_travelled = float(distance - m_last_distance);
+
+                    if (time_elapsed_sec != 0.0)
+                    {
+                        float value = distance_travelled / time_elapsed_sec;
+                        m_cache = proxy_value(value);
+                    }
+
+                    m_last_distance = distance;
+                    m_last_calc_time = now_time;
+                });
+            }
         }
 
+    private:
         std::shared_ptr<D> m_distance; //!< Distance metric whose rate is to be tracked
         std::function<float (float)> m_result_proxy; //!< Proxy function to use for rate values
         std::atomic<float> m_last_distance; //!< The distance value last read
-        std::atomic<float> m_value; //!< Most recently calculated rate
-        std::chrono::steady_clock::time_point m_last_hook_time; //!< Last time at which RateMetric::hook_handler was invoked
+        std::atomic<float> m_cache; //!< Most recently calculated rate
+        std::chrono::steady_clock::time_point m_last_calc_time; //!< Last time at which the cache was updated
 
     };
 
@@ -980,15 +1078,15 @@ namespace measuro
          * @param[in]    unit                  @see Metric::Metric
          * @param[in]    description           @see Metric::Metric
          * @param[in]    time_function         @see Metric::Metric
-         * @param[in]    cascade_rate_limit    @see Metric::Metric
+         * @param[in]    hook_rate_limit    @see Metric::Metric
          */
         SumMetric(std::initializer_list<std::shared_ptr<D> > targets, const std::string & name, const std::string & unit, const std::string & description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::SUM, name, unit, description, time_function, hook_rate_limit), m_cache(0)
         {
             for (auto target : targets)
             {
-                m_targets.push_back(target);
+                add_target(target);
             }
         }
 
@@ -996,8 +1094,8 @@ namespace measuro
          * @see SumMetric::SumMetric(std::initializer_list<std::shared_ptr<D> >, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
          */
         SumMetric(const std::string & name, const std::string & unit, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::SUM, name, unit, description, time_function, hook_rate_limit), m_cache(0)
         {
         }
 
@@ -1005,12 +1103,12 @@ namespace measuro
          * @see SumMetric::SumMetric(std::initializer_list<std::shared_ptr<D> >, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
          */
         SumMetric(std::initializer_list<std::shared_ptr<D> > targets, const char * name, const char * unit, const char * description,
-                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
+                std::function<std::chrono::steady_clock::time_point ()> time_function, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::SUM, name, unit, description, time_function, hook_rate_limit), m_cache(0)
         {
             for (auto target : targets)
             {
-                m_targets.push_back(target);
+                add_target(target);
             }
         }
 
@@ -1018,8 +1116,8 @@ namespace measuro
          * @see SumMetric::SumMetric(std::initializer_list<std::shared_ptr<D> >, const std::string &, const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::chrono::milliseconds)
          */
         SumMetric(const char * name, const char * unit, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::SUM, name, unit, description, time_function, cascade_rate_limit)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::SUM, name, unit, description, time_function, hook_rate_limit), m_cache(0)
         {
         }
 
@@ -1041,6 +1139,7 @@ namespace measuro
             std::lock_guard<std::mutex> lock(m_metric_mutex);
 
             m_targets.push_back(target);
+            m_cache = m_cache + static_cast<typename D::NativeType>(*target);
         }
 
         /*!
@@ -1048,19 +1147,9 @@ namespace measuro
          *
          * @remarks thread-safe
          */
-        explicit operator typename D::NativeType() const noexcept(false)
+        explicit operator typename D::NativeType() const noexcept override final
         {
-            // TODO: Replace with std::scoped_lock on migration to C++17
-            std::lock_guard<std::mutex> lock(m_metric_mutex);
-
-            typename D::NativeType total = 0;
-
-            for (std::size_t index=0;index<m_targets.size();++index)
-            {
-                total += (const typename D::NativeType)(*m_targets[index]);
-            }
-
-            return total;
+            return m_cache;
         }
 
         /*!
@@ -1071,10 +1160,8 @@ namespace measuro
          */
         operator std::string() const noexcept(false) override final
         {
-            auto total = (operator typename D::NativeType)();
-
             std::stringstream formatter;
-            formatter << std::fixed << std::setprecision(2) << total;
+            formatter << std::fixed << std::setprecision(2) << m_cache;
 
             return formatter.str();
         }
@@ -1083,14 +1170,52 @@ namespace measuro
          * Get the number of metrics being summed.
          *
          * @return the number of metrics
+         *
+         * @remarks thread-safe
          */
         std::size_t target_count() const noexcept
         {
+            // TODO: Replace with std::scoped_lock on migration to C++17
+            std::lock_guard<std::mutex> lock(m_metric_mutex);
+
             return m_targets.size();
+        }
+
+        /*!
+         * Adds the values of the target metrics together and caches the
+         * result. This is a relatively expensive operation, so call it as
+         * infrequently as possible.
+         *
+         * As with all metric kinds this method is called automatically before
+         * rendering, thus ensuring the metric's value is up-to-date prior to
+         * the render operation.
+         *
+         * If the metric's value is needed outside of a render operation, it's
+         * recommended that rather than call this method applications instead
+         * rely on their regular render operation (assuming there is one) to
+         * keep the metric up-to-date. Reading the value is then simply a case
+         * of casting the metric to an integral or @c std::string
+         */
+        void calculate() override final
+        {
+            update([this]()
+            {
+                // TODO: Replace with std::scoped_lock on migration to C++17
+                std::lock_guard<std::mutex> lock(m_metric_mutex);
+
+                typename D::NativeType total = 0;
+                for (std::size_t index=0;index<m_targets.size();++index)
+                {
+                    total += static_cast<const typename D::NativeType>(*m_targets[index]);
+                }
+
+                m_cache = total;
+            });
         }
 
     private:
         std::vector<std::shared_ptr<D> > m_targets; //!< Array of targets to be summed
+        std::atomic<typename D::NativeType> m_cache;
 
     };
 
@@ -1110,11 +1235,11 @@ namespace measuro
          * @param[in]    description           @see Metric::Metric
          * @param[in]    time_function         @see Metric::Metric
          * @param[in]    initial_value         Value with which to initialise the metric
-         * @param[in]    cascade_rate_limit    @see Metric::Metric
+         * @param[in]    hook_rate_limit       @see Metric::Metric
          */
         StringMetric(const std::string & name, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const std::string & initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::STR, name, description, time_function, cascade_rate_limit), m_value(initial_value)
+                const std::string & initial_value, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::STR, name, description, time_function, hook_rate_limit), m_value(initial_value)
         {
         }
 
@@ -1122,8 +1247,8 @@ namespace measuro
          * @see StringMetric::StringMetric(const std::string &, const std::string &, std::function<std::chrono::steady_clock::time_point ()>, const std::string &, const std::chrono::milliseconds)
          */
         StringMetric(const char * name, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
-                const char * initial_value, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::STR, name, description, time_function, cascade_rate_limit), m_value(initial_value)
+                const char * initial_value, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::STR, name, description, time_function, hook_rate_limit), m_value(initial_value)
         {
         }
 
@@ -1197,12 +1322,12 @@ namespace measuro
          * @param[in]    initial_value         Value with which to initialise the metric
          * @param[in]    true_rep              String representation of the metric when its value is @c true. Default = TRUE
          * @param[in]    false_rep             String representation of the metric when its value is @c false. Default = FALSE
-         * @param[in]    cascade_rate_limit    @see Metric::Metric
+         * @param[in]    hook_rate_limit    @see Metric::Metric
          */
         BoolMetric(const std::string & name, const std::string & description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::BOOL, name, description, time_function, cascade_rate_limit), m_value(initial_value), m_true_rep(true_rep),
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::BOOL, name, description, time_function, hook_rate_limit), m_value(initial_value), m_true_rep(true_rep),
           m_false_rep(false_rep)
         {
         }
@@ -1212,8 +1337,8 @@ namespace measuro
          */
         BoolMetric(const char * name, const char * description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 const bool initial_value, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
-        : Metric(Metric::Kind::BOOL, name, description, time_function, cascade_rate_limit), m_value(initial_value), m_true_rep(true_rep),
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds::zero()) noexcept(false)
+        : Metric(Metric::Kind::BOOL, name, description, time_function, hook_rate_limit), m_value(initial_value), m_true_rep(true_rep),
           m_false_rep(false_rep)
         {
         }
@@ -1242,7 +1367,7 @@ namespace measuro
         /*!
          * Get the value of the metric as a bool.
          */
-        explicit operator bool() const noexcept
+        explicit operator bool() const noexcept override final
         {
             return m_value;
         }
@@ -1698,14 +1823,22 @@ namespace measuro
         }
 
         /*!
-         * Renders a metric as \<metric name\> = \<metric value\>\\n and writes it
-         * to the output stream.
+         * Renders a metric as \<metric name\> = \<metric value\> \<metric unit\>\\n
+         * and writes it to the output stream.
          *
          * @param[in]    metric    The metric to render
          */
         void render(const std::shared_ptr<Metric> & metric) noexcept(false) override final
         {
-            m_destination << metric->name() << " = " << std::string((*metric)) << "\n";
+            std::string unit_part = metric->unit();
+            if (unit_part.size() > 0)
+            {
+                m_destination << metric->name() << " = " << std::string((*metric)) << ' ' << unit_part << '\n';
+            }
+            else
+            {
+                m_destination << metric->name() << " = " << std::string((*metric)) << '\n';
+            }
         }
 
     private:
@@ -2097,7 +2230,7 @@ namespace measuro
          * @param[in]    unit                  Unit string to associate with the metric
          * @param[in]    description           Description of the metric
          * @param[in]    initial_value         Value with which to initialise the metric
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2106,11 +2239,11 @@ namespace measuro
          * @remarks thread-safe
          */
         UintHandle create_metric(const UINT k, const std::string name, const std::string unit, const std::string description,
-                const std::uint64_t initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const std::uint64_t initial_value = 0, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k);
 
-            auto metric = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
+            auto metric = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >(name, unit, description, m_time_function, initial_value, hook_rate_limit);
             register_metric<NumberMetric<Metric::Kind::UINT, std::uint64_t> >(name, metric, m_uint_metrics);
             return metric;
         }
@@ -2123,7 +2256,7 @@ namespace measuro
          * @param[in]    unit                  Unit string to associate with the metric
          * @param[in]    description           Description of the metric
          * @param[in]    initial_value         Value with which to initialise the metric
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2132,11 +2265,11 @@ namespace measuro
          * @remarks thread-safe
          */
         IntHandle create_metric(const INT k, const std::string name, const std::string unit, const std::string description,
-                const std::uint64_t initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const std::uint64_t initial_value = 0, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k);
 
-            auto metric = std::make_shared<NumberMetric<Metric::Kind::INT, std::int64_t> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
+            auto metric = std::make_shared<NumberMetric<Metric::Kind::INT, std::int64_t> >(name, unit, description, m_time_function, initial_value, hook_rate_limit);
             register_metric<NumberMetric<Metric::Kind::INT, std::int64_t> >(name, metric, m_int_metrics);
             return metric;
         }
@@ -2149,7 +2282,7 @@ namespace measuro
          * @param[in]    unit                  Unit string to associate with the metric
          * @param[in]    description           Description of the metric
          * @param[in]    initial_value         Value with which to initialise the metric
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2158,11 +2291,11 @@ namespace measuro
          * @remarks thread-safe
          */
         FloatHandle create_metric(const FLOAT k, const std::string name, const std::string unit, const std::string description,
-                const float initial_value = 0, const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const float initial_value = 0, const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k);
 
-            auto metric = std::make_shared<NumberMetric<Metric::Kind::FLOAT, float> >(name, unit, description, m_time_function, initial_value, cascade_rate_limit);
+            auto metric = std::make_shared<NumberMetric<Metric::Kind::FLOAT, float> >(name, unit, description, m_time_function, initial_value, hook_rate_limit);
             register_metric<NumberMetric<Metric::Kind::FLOAT, float> >(name, metric, m_float_metrics);
             return metric;
         }
@@ -2176,7 +2309,7 @@ namespace measuro
          * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
          * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
          * @param[in]    description           Description of the metric
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
          * @return a handle to the created metric, which must be de-referenced before use
@@ -2187,12 +2320,12 @@ namespace measuro
          */
         RateOfUintHandle create_metric(const RATE k1, const UINT k2,
                 UintHandle & distance, const std::string name, const std::string unit, const std::string description,
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
+                std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
 
-            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(distance, result_proxy, name, unit, description, m_time_function, hook_rate_limit);
             register_metric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, metric);
             return metric;
         }
@@ -2206,7 +2339,7 @@ namespace measuro
          * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
          * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
          * @param[in]    description           Description of the metric
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
          * @return a handle to the created metric, which must be de-referenced before use
@@ -2217,12 +2350,12 @@ namespace measuro
          */
         RateOfIntHandle create_metric(const RATE k1, const INT k2,
                 IntHandle & distance, const std::string name, const std::string unit, const std::string description,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
 
-            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(distance, result_proxy, name, unit, description, m_time_function, hook_rate_limit);
             register_metric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, metric);
             return metric;
         }
@@ -2236,7 +2369,7 @@ namespace measuro
          * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
          * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
          * @param[in]    description           Description of the metric
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
          * @return a handle to the created metric, which must be de-referenced before use
@@ -2247,12 +2380,12 @@ namespace measuro
          */
         RateOfFloatHandle create_metric(const RATE k1, const FLOAT k2,
                 FloatHandle & distance, const std::string name, const std::string unit, const std::string description,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
 
-            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(distance, result_proxy, name, unit, description, m_time_function, hook_rate_limit);
             register_metric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, metric);
             return metric;
         }
@@ -2268,7 +2401,7 @@ namespace measuro
          * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
          * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
          * @param[in]    description           Description of the metric
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
          * @return a handle to the created metric, which must be de-referenced before use
@@ -2279,13 +2412,13 @@ namespace measuro
          */
         RateOfSumOfUintHandle create_metric(const RATE k1, const SUM k2, const UINT k3,
                 SumOfUintHandle & distance, const std::string name, const std::string unit, const std::string description,
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
             (void)(k3);
 
-            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(distance, result_proxy, name, unit, description, m_time_function, hook_rate_limit);
             register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, metric);
             return metric;
         }
@@ -2301,7 +2434,7 @@ namespace measuro
          * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
          * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
          * @param[in]    description           Description of the metric
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
          * @return a handle to the created metric, which must be de-referenced before use
@@ -2312,13 +2445,13 @@ namespace measuro
          */
         RateOfSumOfIntHandle create_metric(const RATE k1, const SUM k2, const INT k3,
                 SumOfIntHandle & distance, const std::string name, const std::string unit, const std::string description,
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
+                std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
             (void)(k3);
 
-            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(distance, result_proxy, name, unit, description, m_time_function, hook_rate_limit);
             register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, metric);
             return metric;
         }
@@ -2334,7 +2467,7 @@ namespace measuro
          * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
          * @param[in]    unit                  Unit string to associate with the metric, e.g. bytes/sec
          * @param[in]    description           Description of the metric
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          * @param[in]    result_proxy          A function given the opportunity to modify a calculated rate before being recorded against the metric. Particularly useful for unit conversion, e.g. converting bytes per second to mebibytes per second
          *
          * @return a handle to the created metric, which must be de-referenced before use
@@ -2345,13 +2478,13 @@ namespace measuro
          */
         RateOfSumOfFloatHandle create_metric(const RATE k1, const SUM k2, const FLOAT k3,
                 SumOfFloatHandle & distance, const std::string name, const std::string unit, const std::string description,
-                std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
+                std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000), std::function<float (float)> result_proxy = nullptr) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
             (void)(k3);
 
-            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(distance, result_proxy, name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(distance, result_proxy, name, unit, description, m_time_function, hook_rate_limit);
             register_metric<RateMetric<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, metric);
             return metric;
         }
@@ -2365,7 +2498,7 @@ namespace measuro
          * @param[in]    unit                  Unit string to associate with the metric
          * @param[in]    description           Description of the metric
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2376,12 +2509,12 @@ namespace measuro
         SumOfUintHandle create_metric(const SUM k1, const UINT k2,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<UintHandle > targets = {},
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
 
-            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(name, unit, description, m_time_function, hook_rate_limit);
 
             initialise_sum_with_targets(metric, targets);
 
@@ -2398,7 +2531,7 @@ namespace measuro
          * @param[in]    unit                  Unit string to associate with the metric
          * @param[in]    description           Description of the metric
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2409,12 +2542,12 @@ namespace measuro
         SumOfIntHandle create_metric(const SUM k1, const INT k2,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<IntHandle > targets = {},
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
 
-            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > >(name, unit, description, m_time_function, hook_rate_limit);
 
             initialise_sum_with_targets(metric, targets);
 
@@ -2431,7 +2564,7 @@ namespace measuro
          * @param[in]    unit                  Unit string to associate with the metric
          * @param[in]    description           Description of the metric
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2442,12 +2575,12 @@ namespace measuro
         SumOfFloatHandle create_metric(const SUM k1, const FLOAT k2,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<FloatHandle > targets = {},
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
 
-            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<NumberMetric<Metric::Kind::FLOAT, float> > >(name, unit, description, m_time_function, hook_rate_limit);
 
             initialise_sum_with_targets(metric, targets);
 
@@ -2465,7 +2598,7 @@ namespace measuro
          * @param[in]    unit                  Unit string to associate with the metric
          * @param[in]    description           Description of the metric
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2476,13 +2609,13 @@ namespace measuro
         SumOfRateOfUintHandle create_metric(const SUM k1, const RATE k2, const UINT k3,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<RateOfUintHandle > targets = {},
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
             (void)(k3);
 
-            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > >(name, unit, description, m_time_function, hook_rate_limit);
 
             initialise_sum_with_targets(metric, targets);
 
@@ -2500,7 +2633,7 @@ namespace measuro
          * @param[in]    unit                  Unit string to associate with the metric
          * @param[in]    description           Description of the metric
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2511,13 +2644,13 @@ namespace measuro
         SumOfRateOfIntHandle create_metric(const SUM k1, const RATE k2, const INT k3,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<RateOfIntHandle > targets = {},
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
             (void)(k3);
 
-            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::INT, std::int64_t> > > >(name, unit, description, m_time_function, hook_rate_limit);
 
             initialise_sum_with_targets(metric, targets);
 
@@ -2535,7 +2668,7 @@ namespace measuro
          * @param[in]    unit                  Unit string to associate with the metric
          * @param[in]    description           Description of the metric
          * @param[in]    targets               List of metric handles to sum together. More can be added after creation by calling SumMetric::add_target
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2546,13 +2679,13 @@ namespace measuro
         SumOfRateOfFloatHandle create_metric(const SUM k1, const RATE k2, const FLOAT k3,
                 const std::string name, const std::string unit, const std::string description,
                 const std::initializer_list<RateOfFloatHandle > targets = {},
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k1);
             (void)(k2);
             (void)(k3);
 
-            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, unit, description, m_time_function, cascade_rate_limit);
+            auto metric = std::make_shared<SumMetric<RateMetric<NumberMetric<Metric::Kind::FLOAT, float> > > >(name, unit, description, m_time_function, hook_rate_limit);
 
             initialise_sum_with_targets(metric, targets);
 
@@ -2567,7 +2700,7 @@ namespace measuro
          * @param[in]    name                  Name of the metric. This must be unique with respect to all metrics in the registry
          * @param[in]    description           Description of the metric
          * @param[in]    initial_value         Value with which to initialise the metric
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2576,11 +2709,11 @@ namespace measuro
          * @remarks thread-safe
          */
         StringHandle create_metric(const STR k, const std::string name, const std::string description,
-                const std::string initial_value = "", const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const std::string initial_value = "", const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k);
 
-            auto metric = std::make_shared<StringMetric>(name, description, m_time_function, initial_value, cascade_rate_limit);
+            auto metric = std::make_shared<StringMetric>(name, description, m_time_function, initial_value, hook_rate_limit);
             register_metric<StringMetric>(name, metric, m_str_metrics);
             return metric;
         }
@@ -2594,7 +2727,7 @@ namespace measuro
          * @param[in]    initial_value         Value with which to initialise the metric
          * @param[in]    true_rep              String representation of the metric when its value is @c true
          * @param[in]    false_rep             String representation of the metric when its value is @c false
-         * @param[in]    cascade_rate_limit    Minimum number of milliseconds between cascaded operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
+         * @param[in]    hook_rate_limit       Minimum number of milliseconds between hook operations triggered by changes to the metric. Specify std::chrono::milliseconds::zero() to disable rate limiting
          *
          * @return a handle to the created metric, which must be de-referenced before use
          *
@@ -2604,11 +2737,11 @@ namespace measuro
          */
         BoolHandle create_metric(const BOOL k, const std::string name, const std::string description,
                 const bool initial_value = false, const std::string true_rep = "TRUE", const std::string false_rep = "FALSE",
-                const std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
+                const std::chrono::milliseconds hook_rate_limit = std::chrono::milliseconds(1000)) noexcept(false)
         {
             (void)(k);
 
-            auto metric = std::make_shared<BoolMetric>(name, description, m_time_function, initial_value, true_rep, false_rep, cascade_rate_limit);
+            auto metric = std::make_shared<BoolMetric>(name, description, m_time_function, initial_value, true_rep, false_rep, hook_rate_limit);
             register_metric<BoolMetric>(name, metric, m_bool_metrics);
             return metric;
         }
@@ -2835,7 +2968,8 @@ namespace measuro
 
         /*!
          * Renders any metric in the registry whose name begins with
-         * @c name_prefix using the provided Renderer object.
+         * @c name_prefix using the provided Renderer object. Metrics'
+         * @c calculate() methods are called automatically prior to rendering.
          *
          * @param[in]    renderer       Renderer to use for rendering the metrics
          * @param[in]    name_prefix    Prefix of the metric names to be rendered
@@ -2865,15 +2999,8 @@ namespace measuro
          */
         void render(Renderer & renderer) const noexcept(false)
         {
-            // TODO: Replace with std::scoped_lock on migration to C++17
-            std::lock_guard<std::mutex> lock(m_registry_mutex);
-
-            RendererContext render_ctx(renderer);
-
-            for (auto metric : m_metrics)
-            {
-                renderer.render(metric.second.first);
-            }
+            std::string dummy_prefix;
+            render_with_prefix(renderer, dummy_prefix);
         }
 
         /*!
@@ -2991,6 +3118,7 @@ namespace measuro
             {
                 if ((name_prefix.length() == 0) || (metric.first.find(name_prefix) == 0))
                 {
+                    metric.second.first->calculate();
                     renderer.render(metric.second.first);
                 }
             }
