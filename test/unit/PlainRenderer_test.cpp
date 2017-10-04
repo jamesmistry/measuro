@@ -10,7 +10,7 @@
 namespace measuro
 {
 
-    TEST(PlainRenderer, render_single)
+    TEST(PlainRenderer, render_single_nounit)
     {
         std::chrono::steady_clock::time_point dummy_clock;
         std::shared_ptr<StringMetric> metric = std::make_shared<StringMetric>("test_name", "test desc 1", [&dummy_clock]{return dummy_clock;}, "init");
@@ -22,6 +22,23 @@ namespace measuro
         subject.after();
 
         std::string expected = "test_name = init\n\n";
+
+        EXPECT_EQ(output.str(), expected);
+    }
+
+    TEST(PlainRenderer, render_single_unit)
+    {
+        std::chrono::steady_clock::time_point dummy_clock;
+        auto metric = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_name", "bps", "test desc", [&dummy_clock]{return dummy_clock;});
+        *metric = 1001;
+
+        std::stringstream output;
+
+        PlainRenderer subject(output);
+        subject.render(metric);
+        subject.after();
+
+        std::string expected = "test_name = 1001 bps\n\n";
 
         EXPECT_EQ(output.str(), expected);
     }

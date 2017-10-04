@@ -47,7 +47,7 @@ namespace measuro
     public:
         StubHookMetric(NumberMetric<Metric::Kind::UINT, std::uint64_t> & target, std::string name, std::string unit, std::string description, std::function<std::chrono::steady_clock::time_point ()> time_function,
                 std::uint64_t initial_value = 0, std::chrono::milliseconds cascade_rate_limit = std::chrono::milliseconds::zero()) noexcept
-        : Metric(Metric::Kind::UINT, name, unit, description, time_function, cascade_rate_limit), m_target(target), m_value(initial_value)
+        : Metric(Metric::Kind::UINT, name, unit, description, time_function, cascade_rate_limit), m_target(target), m_value(initial_value), m_hook_metric(nullptr)
         {
             target.register_hook(std::bind(&StubHookMetric::hook_handler, this, std::placeholders::_1));
         }
@@ -62,21 +62,21 @@ namespace measuro
             return m_value;
         }
 
-        std::chrono::steady_clock::time_point hook_time() const
+        const Metric * hook_metric() const
         {
-            return m_hook_time;
+            return m_hook_metric;
         }
 
     private:
-        void hook_handler(std::chrono::steady_clock::time_point update_time)
+        void hook_handler(const Metric & metric)
         {
-            m_value = std::uint64_t(m_target);
-            m_hook_time = update_time;
+            m_value = std::uint64_t(metric);
+            m_hook_metric = &metric;
         }
 
         NumberMetric<Metric::Kind::UINT, std::uint64_t> & m_target;
         std::uint64_t m_value;
-        std::chrono::steady_clock::time_point m_hook_time;
+        const Metric * m_hook_metric;
 
     };
 

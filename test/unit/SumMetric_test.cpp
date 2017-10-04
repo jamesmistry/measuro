@@ -76,4 +76,61 @@ namespace measuro
         EXPECT_EQ(std::uint64_t(subject), 145);
     }
 
+    TEST(SumMetric, sum_of_rate)
+    {
+        StubTimeFunction time_f({0, 0, 2500, 5000, 1600, 1500});
+        std::chrono::steady_clock::time_point dummy_clock;
+        auto rate_target1 = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_tgt", "tst", "test desc 2", [&dummy_clock]{return dummy_clock;}, 0);
+        auto rate_target2 = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_tgt", "tst", "test desc 2", [&dummy_clock]{return dummy_clock;}, 0);
+
+        auto rate1 = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(rate_target1, [](float val){return val;}, "test_rate", "test_unit", "test desc", time_f);
+        auto rate2 = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(rate_target2, [](float val){return val;}, "test_rate", "test_unit", "test desc", time_f);
+
+        SumMetric<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > subject("test_name", "tst", "test desc 1", [&dummy_clock]{return dummy_clock;});
+        EXPECT_EQ(subject.kind(), Metric::Kind::SUM);
+
+        subject.add_target(rate1);
+        subject.add_target(rate2);
+
+        *rate_target1 = 0;
+        *rate_target2 = 0;
+        rate1->calculate();
+        rate2->calculate();
+        subject.calculate();
+        EXPECT_EQ(std::string(subject), "0.00");
+        EXPECT_FLOAT_EQ(float(subject), 0);
+
+        *rate_target1 = 250;
+        *rate_target2 = 150;
+        rate1->calculate();
+        rate2->calculate();
+        subject.calculate();
+        EXPECT_EQ(std::string(subject), "160.00");
+        EXPECT_FLOAT_EQ(float(subject), 160);
+
+        *rate_target1 = 500;
+        *rate_target2 = 852;
+        rate1->calculate();
+        rate2->calculate();
+        subject.calculate();
+        EXPECT_EQ(std::string(subject), "190.40");
+        EXPECT_FLOAT_EQ(float(subject), 190.4);
+
+        *rate_target1 = 550;
+        *rate_target2 = 927;
+        rate1->calculate();
+        rate2->calculate();
+        subject.calculate();
+        EXPECT_EQ(std::string(subject), "78.12");
+        EXPECT_FLOAT_EQ(float(subject), 78.125);
+
+        *rate_target1 = 700;
+        *rate_target2 = 1092;
+        rate1->calculate();
+        rate2->calculate();
+        subject.calculate();
+        EXPECT_EQ(std::string(subject), "210.00");
+        EXPECT_FLOAT_EQ(float(subject), 210);
+    }
+
 }
