@@ -97,15 +97,17 @@ namespace measuro
 
     TEST(JsonRenderer, render_rate)
     {
-        StubTimeFunction tgt_time_f({0, 5000, 5000});
-        StubTimeFunction sub_time_f({0, 5000, 5000});
+        StubTimeFunction time_f({0, 5000, 5000});
 
-        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > target = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_name", "bps", "test desc", tgt_time_f, 1);
-        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(target, [](float val){return val*2;}, "test_rate", "test_unit", "test desc", sub_time_f);
+        std::shared_ptr<NumberMetric<Metric::Kind::UINT, std::uint64_t> > target = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("test_name", "bps", "test desc", time_f, 1);
+        std::shared_ptr<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > > metric = std::make_shared<RateMetric<NumberMetric<Metric::Kind::UINT, std::uint64_t> > >(target, [](float val){return val*2;}, "test_rate", "test_unit", "test desc", time_f);
 
-        (*target) = 0; // Baseline the clock
+        *target = 0; // Baseline the clock
+        metric->calculate();
 
-        (*target) = 1000;
+        *target = 1000;
+        metric->calculate();
+
         EXPECT_FLOAT_EQ(float((*metric)), 400);
         EXPECT_EQ(std::string((*metric)), "400.00");
 
