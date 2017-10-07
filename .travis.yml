@@ -2,6 +2,12 @@ language: cpp
 
 compiler: gcc
 
+before_script:
+    - cd /usr/src/gtest
+    - sudo cmake CMakeLists.txt
+    - sudo make
+    - sudo cp *.a /usr/lib
+
 script: cmake ./ && make && make test
 
 matrix:
