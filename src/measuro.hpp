@@ -1,5 +1,5 @@
 /*!
- * @file Measuro.hpp
+ * @file measuro.hpp
  *
  * Copyright (c) 2017 James Mistry
  *

@@ -10,7 +10,7 @@
 #include <exception>
 #include <iostream>
 
-#include "Measuro.hpp"
+#include "measuro.hpp"
 
 namespace measuro
 {
