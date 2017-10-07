@@ -7,6 +7,7 @@ before_script:
     - sudo cmake CMakeLists.txt
     - sudo make
     - sudo cp *.a /usr/lib
+    - cd $TRAVIS_BUILD_DIR
 
 script: cmake ./ && make && make test
 
