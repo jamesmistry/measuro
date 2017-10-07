@@ -13,9 +13,8 @@ Testing
 *.rpm
 *.swp
 _CPack_Packages
-*_testexe
 Debug/
 docs/code/
 .pydevproject
 measuro-devel-*
-examples/*_exe
+*_exe
