@@ -1,20 +1,29 @@
-.. Measuro documentation master file, created by
-   sphinx-quickstart on Thu Sep 21 22:09:28 2017.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Welcome to Measuro!
+===================
 
-Welcome to Measuro's documentation!
-===================================
+Measuro is a fast, easy-to-use header library for creating program metrics in
+modern C++.
+
+Key features include:
+
+- Header-only library written in pure C++14 with no external runtime
+  dependencies
+- An intuitive, thread-safe interface for manipulating numeric, string and
+  boolean metrics
+- Sum numeric metrics together automatically using the special 'sum' metric
+  type
+- Calculate the rate of change of a numeric metric automatically using the
+  special 'rate' metric type
+- Minimise the performance impact of frequent metric updates using built-in
+  rate limiting options
+- Easily output metrics in custom formats using the simple Renderer interface,
+  or use the built-in plain text and JSON renderers
+- Schedule asynchronous metric render operations to automatically write
+  formatted metrics to an output stream at regular intervals
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Contents
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   getting-started
+   developer-guide

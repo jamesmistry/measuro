@@ -1,0 +1,500 @@
+.. _dev-guide:
+
+Developer Guide
+===============
+
+The Basics
+----------
+
+Registry
+^^^^^^^^
+
+All metrics are tracked by a ``measuro::Registry`` object. The registry's main 
+purpose is to keep track of all metrics so that it can "render" them 
+(transform their data into another format, usually for output) altogether 
+when required by the application. The registry also provides the API for 
+applications to create metrics and look them up by their kind and name. The 
+creation, manipulation, rendering and lookup of metrics is thread-safe.
+
+An application should only use a single ``measuro::Registry`` object. While 
+there's nothing stopping an application from using multiple registries, this 
+is likely to lead to design complications and there are few - if any - 
+advantages.
+
+Metric Kinds
+^^^^^^^^^^^^
+
+Each metric is of a particular "kind". Currently, Measuro supports the 
+following metric kinds:
+
+- **Unsigned integer:** An unsigned 64-bit integer.
+- **Signed integer:** A signed 64-bit integer.
+- **Float:** A floating-point number as defined by your compiler's ``float`` 
+  type implementation.
+- **Rate:** The rate of change of another numeric metric, automatically 
+  calculated by Measuro. Its value is always expressed as a floating-point 
+  number.
+- **Sum:** The sum of a set of other metrics, automatically calculated by
+  Measuro.
+- **Bool:** A ``true`` or ``false`` metric. The two values can be associated 
+  with custom string representations for use when rendering.
+- **String:** A string value.
+
+Note that all metrics whose values are expressed as floating-point numbers 
+(float, rate and sum-of-float kinds) will always be rendered to 2 decimal 
+places.
+
+Creating Metrics
+----------------
+
+A metric is created using one of the overloaded ``create_metric()`` methods of 
+a ``measuro::Registry`` object. The first argument of ``create_metric()`` 
+always specifies the kind of metric to create. For example:
+
+.. code-block:: cpp
+
+    measuro::Registry reg;
+
+    // Create a signed 64-bit metric called "example_int64", initialised by 
+    // default to 0
+    auto int_metric = reg.create_metric(measuro::INT::KIND, "example_int64", 
+        "file(s)", "An example int metric");
+
+    // Create a float metric called "example_float", initialised by default to 
+    // 0
+    auto float_metric = reg.create_metric(measuro::FLOAT::KIND, "example_float", 
+        "hour(s)", "An example float metric");
+
+.. note::
+    ``measuro::Registry`` objects require that all metrics they track have unique
+    names. A ``measuro::MetricNameError`` exception will be thrown by 
+    ``create_metric()`` if you attempt to create a metric with a name that has 
+    already been taken.
+
+In addition to a name, each created metric can be given a string description 
+and all numeric metrics can be given a unit. As well as providing useful 
+context in rendered output, specifying meaningful descriptions and units helps 
+to document your code.
+
+For all metric kinds except rate and sum, you can optionally specify an 
+initial value on creation:
+
+.. code-block:: cpp
+
+    // Create a signed 64-bit metric called "example_init" initialised to
+    // 1234
+    auto init_metric = reg.create_metric(measuro::INT::KIND, "example_init",
+        "file(s)", "An example initialised metric", 1234);
+
+For boolean metric kinds, you can also optionally specify alternative string 
+representations for ``true`` and ``false`` values to be used when the metric 
+is rendered (the default string values are "TRUE" and "FALSE" respectively). 
+For example:
+
+.. code-block:: cpp
+
+    // Create a boolean metric called "example_bool" for which true maps to
+    // "yes" and false maps to "no"
+    auto bool_metric = reg.create_metric(measuro::BOOL::KIND, "example_bool",
+        "An example boolean metric", false, "yes", "no");
+
+    // Outputs false = no
+    std::cout << "false = " << std::string(*bool_metric) << "\n";
+
+    *bool_metric = true;
+
+    // Outputs true = yes
+    std::cout << "true = " << std::string(*bool_metric) << "\n";
+
+Creating Sum and Rate Metrics
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Sum and rate metrics are also created using 
+``measuro::Registry::create_metric()`` method overloads. However, because the 
+values of these metrics are calculated automatically based on other metrics, 
+there are some additional things you need to consider.
+
+Firstly, you must explicitly specify the kind of metric that any sum or 
+rate metric you create will use to automatically calculate its value.
+
+Sum metrics may use the following kinds of metrics to calculate their values:
+
+- A numeric metric kind (unsigned integer, signed integer or float)
+- A rate metric
+
+.. note::
+    A sum metric can only calculate the sum of other metrics that are all of 
+    the same kind.
+
+Rate metrics may use the following kinds of metrics to calculate their values:
+
+- A numeric metric kind (unsigned integer, signed integer or float)
+- A sum metric
+
+That is to say:
+
+- Sum metrics can't be calculated using other sum metrics
+- Rate metrics can't be calculated using other rate metrics
+- Neither sum nor rate metrics can be calculated using boolean or string 
+  metrics
+
+For example:
+
+.. code-block:: cpp
+
+    /*
+     * Create 2 unsigned metrics representing counters from separate 
+     * hypothetical threads. Then, create a sum metric which sums these two 
+     * counters together and a rate metric which calculates the rate at which
+     * the sum of the counters changes.
+     *  
+     */
+
+    auto file_count_1 = reg.create_metric(measuro::UINT::KIND, "FileCount1",
+        "files", "Num files processed, thread 1");
+
+    auto file_count_2 = reg.create_metric(measuro::UINT::KIND, "FileCount2",
+        "files", "Num files processed, thread 2");
+
+    auto sum_of_uint = reg.create_metric(measuro::SUM::KIND,
+        measuro::UINT::KIND, "SumExample", "files", "Num files processed",
+        {file_count_1, file_count_2});
+
+    auto rate_of_sum_of_uint = reg.create_metric(measuro::RATE::KIND, 
+        measuro::SUM::KIND, measuro::UINT::KIND, sum_of_uint, 
+        "RateOfSumExample", "files/sec", "Num files processed per sec");
+
+Manipulating Metrics
+--------------------
+
+Before you can change a metric's value, you need a way to refer to it. You do 
+this using a `metric handle`. There are 2 ways to get a metric handle for a 
+metric you want to manipulate:
+
+1. From the return value of the ``create_metric()`` call used to create the
+   metric.
+2. By using the registry object to look up the metric by its kind and name.
+
+For example:
+
+.. code-block:: cpp
+
+    measuro::Registry reg;
+
+    // Create a metric and store its handle in handle
+    auto handle = reg.create_metric(measuro::INT::KIND, "example_metric",
+            "file(s)", "An example metric");
+
+    // Find the metric's handle by specifying its kind and name. Note that if
+    // the metric can't be found, an exception of type measuro::MetricTypeError
+    // or measuro::MetricNameError will be thrown
+    auto found_handle = reg(measuro::INT::KIND, "example_metric");
+
+.. note::
+    You can't look up sum or rate metrics.
+
+It's more expensive to get metric handles by looking them up than simply by 
+keeping the return value from the ``create_metric()`` call. Particularly in 
+performance-sensitive applications, it's recommended you avoid performing 
+lookups.
+
+The metric handle type aliases for the metric kinds you can manipulate are 
+listed below. You can use these to declare variables for storing handles that 
+persist beyond the scope of the ``create_metric()`` call (e.g. as member 
+variables).
+
+============ =================
+Metric Kind  Handle type alias
+============ =================
+Signed int   ``IntHandle``
+Unsigned int ``UintHandle``
+Float        ``FloatHandle``
+Boolean      ``BoolHandle``
+String       ``StringHandle``
+============ =================
+
+For example:
+
+.. code-block:: cpp
+
+    struct AppMetrics
+    {
+        AppMetrics()
+        {
+            file_count = registry.create_metric(measuro::UINT::KIND,
+                "file_count", "file(s)", "Number of files processed");
+            busy = registry.create_metric(measuro::BOOL::KIND,
+                "busy", "Is the app busy processing files?");
+        }
+
+        measuro::Registry registry;
+        measuro::UintHandle file_count;
+        measuro::BoolHandle busy;
+    };
+
+Note that sum and rate metrics also have handle type aliases you can use, but
+the exact alias depends on what kind of metric is being summed or having its 
+rate of change measured. Most of the time you won't need to store handles to 
+these metrics as they can't be manipulated directly. An exception is if you 
+want to be able to read the metric values from code. In this case, refer to 
+the in-code documentation for the ``create_metric()`` overload you're using 
+to see the relevant handle type alias. Examples include ``RateOfUintHandle``
+and ``SumOfRateOfIntHandle``.
+
+Rendering Metrics
+-----------------
+
+Rendering a metric means transforming the information held about it - 
+including its value, name, description and kind - into another form, typically 
+for output.
+
+Metrics are rendered by passing a ``measuro::Renderer`` to the ``render()`` 
+method of the ``measuro::Registry`` object tracking the metrics. The registry
+will pass each metric to the renderer for processing, ensuring that all metric
+value calculations are up-to-date first.
+
+You can also optionally specify a string prefix as an argument to 
+``measuro::Registry::render()``, causing the registry to only render metrics
+whose names begin with the prefix. This can be useful when you use a metric
+naming convention that groups metrics into program modules, for example 
+``input.*`` for input-related metrics and ``output.*`` for output-related 
+metrics.
+
+Measuro Renderers
+^^^^^^^^^^^^^^^^^
+
+Measuro comes with 2 renderers:
+
+1. **PlainRenderer**: Renders metrics as key-value pairs in a form designed to be
+   easily read by humans, as well as straightforward to parse using line-based
+   text processing tools such as ``sed``.
+2. **JsonRenderer**: Renders metrics as a JSON dictionary, where each key in the 
+   dictionary is a string containing the name of a metric and the corresponding
+   value a dictionary containing the metric information.
+
+Both the ``PlainRenderer`` and ``JsonRenderer`` constructors expect a
+``std::ostream`` object to be passed to them. Their rendered data is written to
+this stream before the call to ``measuro::Registry::render()`` returns.
+
+Below is an example of code using the Measuro renderers and the output it
+produces.
+
+.. code-block:: cpp
+
+    measuro::Registry reg;
+
+    auto count_metric = reg.create_metric(measuro::INT::KIND, "example_count",
+            "item(s)", "An example count metric", 0);
+    auto str_metric = reg.create_metric(measuro::STR::KIND, "example_str",
+            "An example string metric");
+
+    *str_metric = "Example text";
+
+    for (auto i=0;i<100;++i)
+    {
+        ++*count_metric;
+    }
+
+    measuro::PlainRenderer pl_renderer(std::cout);
+    measuro::JsonRenderer js_renderer(std::cout);
+
+    std::cout << "Plain text output:\n\n";
+    reg.render(pl_renderer);
+    std::cout << "----------\n\nJSON output:\n\n";
+    reg.render(js_renderer);
+
+    std::cout << std::endl; // The JSON renderer doesn't terminate with a newline!
+
+.. code-block:: bash 
+
+    Plain text output:
+
+    example_count = 100 item(s)
+    example_str = Example text
+
+    ----------
+
+    JSON output:
+
+    {"example_count":{"value":100,"unit":"item(s)","kind":"INT","description":"An example count metric"},"example_str":{"value":"Example text","unit":"","kind":"STR","description":"An example string metric"}}
+
+Custom Renderers
+^^^^^^^^^^^^^^^^
+
+Creating your own renderer to customise how your application formats metrics is
+easy:
+
+1. Create a class that inherits from ``measuro::Renderer``.
+2. Implement a constructor that allows clients of the class to pass it 
+   arguments that control where its output is to be written (e.g. a stream 
+   object or file name).
+3. At minimum, override the virtual
+   ``void render(const std::shared_ptr<Metric> & metric)`` method. This will be
+   called once for each metric that is to be rendered.
+4. If your renderer needs to perform setup steps before or tear down steps 
+   after the registry makes all its calls to your ``render()`` method, 
+   override the virtual ``void before()`` and ``void after()`` methods.
+
+Your ``render()`` method will be called with the ``measuro::Metric`` object 
+which it is to render. It is guaranteed that all ``measuro::Metric`` objects 
+can be cast to ``std::string``. Depending on the underlying metric kind (which
+you can determine using ``measuro::Metric::kind()``), you may also be able to 
+cast the metric to a ``std::uint64_t``, ``std::int64_t``, ``float`` or 
+``bool``.
+
+.. note::
+    If you try and cast a ``measuro::Metric`` object to a type incompatible 
+    with the underlying metric kind, a ``measuro::MetricCastError`` will be
+    thrown.
+
+For example:
+
+.. code-block:: cpp
+
+    class ExampleCustomRenderer : public measuro::Renderer
+    {
+    public:
+        ExampleCustomRenderer(std::ostream & destination)
+            : m_destination(destination)
+        {
+        }
+
+        virtual void before() override final
+        {
+            m_destination << "--begin metrics--\n";
+        }
+
+        virtual void after() override final
+        {
+            m_destination << "--end metrics--" << std::endl;
+        }
+
+        virtual void render(const std::shared_ptr<measuro::Metric> & metric) override final
+        {
+            m_destination << metric->name() << '=' << std::string(*metric) << '\n';
+        }
+
+    private:
+        std::ostream & m_destination;
+
+    };
+
+    int main(int argc, char * argv[])
+    {
+        measuro::Registry reg;
+
+        auto count_metric = reg.create_metric(measuro::INT::KIND, "example_count",
+            "item(s)", "An example count metric", 1234);
+        auto str_metric = reg.create_metric(measuro::STR::KIND, "example_str",
+            "An example string metric", "str value");
+
+        ExampleCustomRenderer renderer(std::cout);
+
+        reg.render(renderer);
+    }
+
+Which would produce the following output:
+
+.. code-block:: bash
+
+    --begin metrics--
+    example_count=1234
+    example_str=str value
+    --end metrics--
+
+Scheduled Rendering
+^^^^^^^^^^^^^^^^^^^
+
+It's common for applications to need to render metrics on a regular basis, for
+example to stream monitoring information to external tools. Measuro makes this
+easy by allowing render operations to be scheduled to occur asynchronously at 
+specified intervals.
+
+To do this, call the ``measuro::Registry::register_schedule()`` method with the
+renderer object you want used to perform the render and the interval in seconds
+between renders.
+
+For example:
+
+.. code-block:: cpp
+
+    measuro::Registry reg;
+
+    auto num_handle = reg.create_metric(measuro::UINT::KIND, "example_metric",
+            "units", "An example number metric");
+
+    measuro::PlainRenderer renderer(std::cout);
+
+    // Schedule the render to occur every second using the renderer object
+    reg.render_schedule(renderer, std::chrono::seconds(1));
+
+    // Cancel the scheduled render (this happens automatically when the registry
+    // object is destroyed)
+    reg.cancel_render_schedule();
+
+Throttles
+---------
+
+Updating metrics frequently can be costly. This is in part because a metric 
+update requires at least an atomic operation, and in some cases the acquisition 
+of a lock (depending on the metric kind).
+
+Throttle objects help limit the performance impact of frequent updates. They do
+this by sitting in between the application and the metric object and limiting 
+the rate at which the application's attempts to change the metric's value are
+successful.
+
+Throttle limits can be expressed in terms both of the interval in seconds 
+and the interval in attempted updates between metric changes.
+
+.. warning::
+
+    ``measuro::Throttle`` objects are not thread-safe. Don't use them from 
+    multiple threads simultaneously.
+
+For example:
+
+.. code-block:: cpp
+
+    measuro::Registry reg;
+
+    // Create a metric and store its handle in handle
+    auto handle = reg.create_metric(measuro::INT::KIND, "example_metric",
+            "file(s)", "An example metric", 10001);
+
+    // Create a throttle for use with the metric - limit updates to 1 per second and 1 per 1000 changes
+    auto example_throttle = reg.create_throttle(handle, std::chrono::milliseconds(1000), 1000);
+
+    do
+    {
+        // The metric will only be updated once per second and once per 1000 assignments
+        example_throttle = get_value();
+    }
+    while(true);
+
+Performance Tips
+----------------
+
+The last thing you want is for the act of monitoring your application to cause
+it performance problems. In most cases, simple steps can be taken to avoid 
+this:
+
+- **Avoid updating metrics in tight loops.** Metric updates in tight loops
+  can cause a relatively large proportion of CPU time to be spent in Measuro
+  code. Instead, track changes in local variables from within the loop and 
+  assign the result to the metric from outside the loop.
+- **Keep metric handles rather than performing lookups.** Looking metrics up
+  by their name is expensive, particularly from multi-threaded code. Instead,
+  keep the metric handles returned by the 
+  ``measuro::Registry::create_metric()`` methods and use these to directly 
+  refer to metrics.
+- **Create metrics on startup.** Creating metrics locks the registry, so doing
+  this from multiple threads in performance-critical code can be costly. 
+  Instead, create all the metrics on startup.
+- **When you know frequent metric updates are unavoidable, use a throttle.** 
+  Throttle objects limit the rate at which metrics are updated.
+- **Build using multiple threads.** Measuro's use of templates can increase
+  build time, so if supported you should configure your build system to use
+  as many threads as possible.
+
+

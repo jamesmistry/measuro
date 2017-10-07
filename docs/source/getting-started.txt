@@ -1,0 +1,128 @@
+Getting Started
+===============
+
+Prerequisites
+-------------
+
+To use Measuro in your application you will need at minimum:
+
+- cmake >= 2.6
+- A fully-compliant C++14 compiler - g++ 6.1 or above recommended. Measuro has
+  not been tested with other compilers (though it will probably be easy to get
+  building in those that have implemented the standard).
+
+  If you are using a version of g++ < 6.1, you will need to supply the
+  ``-std=c++14`` switch to enable C++14 mode.
+- To link against pthread, e.g. -lpthread
+
+It's recommended that you use the Measuro build system to generate a
+development package you can install using your system package manager. To do
+this you will need package building tools such as rpm-build or builddeb.
+
+To run the Measuro test suite you will need:
+
+- C++14 compiler, as above
+- cmake >= 2.6
+- gtest development package (unit testing framework)
+- valgrind, for dynamic analysis
+- cppcheck, for static analysis
+- Python >= 2.6
+
+Installing
+----------
+
+It's recommended that you generate a development package to install on your
+system. To do this on an RPM-based system, from the repository root:
+
+.. code-block:: none
+
+    $ cmake ./ -DCPACK_GENERATOR=RPM
+
+To do this on a DEB-based system, from the repository root:
+
+.. code-block:: none
+
+    $ cmake ./ -DCPACK_GENERATOR=DEB
+
+Then:
+
+.. code-block:: none
+
+    $ make package
+
+A package file will be generated in the repository root. You can install it
+using your system's package manager, for example:
+
+.. code-block:: none
+
+    $ sudo yum install measuro-devel-x.y-z.rpm
+
+Or:
+
+.. code-block:: none
+
+    $ sudo dpkg -i measuro-devel-x.y-z.deb
+
+If you don't want to - or can't - use a development package, you can copy the
+buildable version of the Measuro header file to your source tree. To do this,
+from the repository root:
+
+.. code-block:: none
+
+    $ cmake ./
+    $ cp build/src/measuro.hpp /your/app/src
+
+Note that the way you include the Measuro header file in your source will
+differ depending on whether or not you are using a development package.
+
+If you are using a development package, you will need to:
+
+.. code-block:: none
+
+    #include <measuro/measuro.hpp>
+
+If you have copied the buildable Measuro header into your own source tree, you
+will need to:
+
+.. code-block:: none
+
+    #include "measuro.hpp"
+
+Hello World Example
+-------------------
+
+For a comprehensive guide to using Measuro, see :ref:`dev-guide`.
+
+.. code-block:: cpp
+
+    #include <iostream>
+    #include <string>
+    #include <measuro/measuro.hpp>
+
+    int main(int argc, char * argv[])
+    {
+        // The Registry object tracks all the app's metrics
+        measuro::Registry reg;
+
+        // Create a string metric called Hello with an initial value of an 
+        // empty string
+        auto metric = reg.create_metric(measuro::STR::KIND, "Hello", 
+                          "My first metric", "");
+
+        // Create a renderer that will render the registry's metrics as plain 
+        // text key-value pairs to stdout
+        measuro::PlainRenderer renderer(std::cout);
+
+        // Perform a render
+        reg.render(renderer);
+
+        // Give the Hello metric a new value
+        *metric = "World";
+
+        // Render again
+        reg.render(renderer);
+
+        return 0;
+    }
+
+
