@@ -39,7 +39,7 @@ namespace measuro
         subject.render(metric);
         subject.after();
 
-        std::string expected = "{\"test_name\":{\"value\":\"yes\",\"unit\":\"\",\"kind\":\"BOOL\",\"description\":\"test desc\"}}";
+        std::string expected = "{\"test_name\":{\"value\":true,\"unit\":\"\",\"kind\":\"BOOL\",\"description\":\"test desc\"}}";
 
         EXPECT_EQ(output.str(), expected);
     }

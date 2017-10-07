@@ -2079,8 +2079,17 @@ namespace measuro
                 m_destination << std::string((*metric));
                 break;
             case Metric::Kind::STR:
+                m_destination << JsonStringLiteral((*metric));
+                break;
             case Metric::Kind::BOOL:
-                m_destination << JsonStringLiteral(std::string((*metric)));
+                if (bool(*metric))
+                {
+                    m_destination << "true";
+                }
+                else
+                {
+                    m_destination << "false";
+                }
                 break;
             }
             m_destination << ',';
