@@ -40,6 +40,7 @@ To use Measuro in your application you will need at minimum:
 
   If you are using a version of g++ < 6.1, you will need to supply the 
   ``-std=c++14`` switch to enable C++14 mode.
+- To link against pthread, e.g. -lpthread
 
 It's recommended that you use the Measuro build system to generate a 
 development package you can install using your system package manager. To do 
