@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
 
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${SRC_OUTPUT_PATH})
-link_directories("/usr/local/lib/gtest")
 
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
