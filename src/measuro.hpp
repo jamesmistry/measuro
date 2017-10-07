@@ -1463,7 +1463,7 @@ namespace measuro
 
         /*!
          * Allows the de-reference operator to be used with Throttle objects.
-         * Helps avoid confusion with the typical use of Metric objects that
+         * Helps avoid confusion with the typical use of Metric handles that
          * requires de-referencing due to them being managed by a
          * std::shared_ptr
          *
