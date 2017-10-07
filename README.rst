@@ -1,7 +1,8 @@
 Measuro
 =======
 
-[![Build Status]https://travis-ci.org/jamesmistry/measuro.png]https://travis-ci.org/jamesmistry/measuro
+.. image:: https://travis-ci.org/jamesmistry/measuro.svg?branch=master
+    :target: https://travis-ci.org/jamesmistry/measuro
 
 Measuro: A fast, easy-to-use header library for creating program metrics in 
 modern C++.
