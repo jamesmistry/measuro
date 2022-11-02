@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 2.6)
 project (measuro)
 set(LIB_VERSION_MAJOR 0)
-set(LIB_VERSION_MINOR 1)
-set(LIB_VERSION_REL 1)
+set(LIB_VERSION_MINOR 2)
+set(LIB_VERSION_REL 0)
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/build/bin")
 set(SRC_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/build/src")
