@@ -2210,6 +2210,11 @@ namespace measuro
                 return;
             }
 
+            if (m_count > 0)
+            {
+                m_destination << '\n';
+            }
+
             if (!m_app_name.empty())
             {
                 name_sanitised = m_app_name + "::" + name_sanitised;

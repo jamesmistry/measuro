@@ -13,16 +13,20 @@ namespace measuro
     {
         std::chrono::steady_clock::time_point dummy_clock;
 
-        auto metric = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("example_count", "ItEm(s)", "An example count metric", [&dummy_clock]{return dummy_clock;});
-        *metric = 100;
+        auto metric_1 = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("example_count1", "ItEm(s)", "An example count metric", [&dummy_clock]{return dummy_clock;});
+        *metric_1 = 100;
+
+        auto metric_2 = std::make_shared<NumberMetric<Metric::Kind::UINT, std::uint64_t> >("example_count2", "ItEm(s)", "An example count metric", [&dummy_clock]{return dummy_clock;});
+        *metric_2 = 200;
 
         std::stringstream test_output;
         PrometheusRenderer subject(test_output, [](){return 1234567;}, "testapp");
         subject.before();
-        subject.render(metric);
+        subject.render(metric_1);
+        subject.render(metric_2);
         subject.after();
 
-        EXPECT_EQ(test_output.str(), "# HELP testapp::example_count_items An example count metric\ntestapp::example_count_items 100 1234567\n");
+        EXPECT_EQ(test_output.str(), "# HELP testapp::example_count1_items An example count metric\ntestapp::example_count1_items 100 1234567\n# HELP testapp::example_count2_items An example count metric\ntestapp::example_count2_items 200 1234567\n");
     }
 
     TEST(PrometheusRenderer, dirty_help_text)
