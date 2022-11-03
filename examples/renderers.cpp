@@ -35,10 +35,11 @@ int main(int argc, char * argv[])
 
     std::cout << "Plain text output:\n\n";
     reg.render(pl_renderer);
+
     std::cout << "----------\n\nJSON output:\n\n";
     reg.render(js_renderer);
-
     std::cout << "\n\n"; // The JSON renderer doesn't terminate with a newline!
 
+    std::cout << "----------\n\nPrometheus output:\n\n";
     reg.render(pr_renderer); // Prometheus renderer always ends with a newline!
 }
