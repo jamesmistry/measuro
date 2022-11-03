@@ -17,7 +17,7 @@ Key features include:
 - Minimise the performance impact of frequent metric updates using built-in
   rate limiting options
 - Easily output metrics in custom formats using the simple Renderer interface,
-  or use the built-in plain text and JSON renderers
+  or use the built-in plain text, JSON and Prometheus renderers
 - Schedule asynchronous metric render operations to automatically write
   formatted metrics to an output stream at regular intervals
 

@@ -40,7 +40,7 @@ following metric kinds:
   with custom string representations for use when rendering.
 - **String:** A string value.
 
-Note that all metrics whose values are expressed as floating-point numbers 
+All metrics whose values are expressed as floating-point numbers 
 (float, rate and sum-of-float kinds) will always be rendered to 2 decimal 
 places.
 
@@ -105,6 +105,10 @@ For example:
 
     // Outputs true = yes
     std::cout << "true = " << std::string(*bool_metric) << "\n";
+
+Note that the JSON and Prometheus renderers will ignore alternative string
+values for boolean metrics, instead using values consistent with those output
+formats.
 
 Creating Sum and Rate Metrics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -263,7 +267,7 @@ metrics.
 Measuro Renderers
 ^^^^^^^^^^^^^^^^^
 
-Measuro comes with 2 renderers:
+Measuro comes with 3 renderers:
 
 1. **PlainRenderer**: Renders metrics as key-value pairs in a form designed to be
    easily read by humans, as well as straightforward to parse using line-based
@@ -271,10 +275,13 @@ Measuro comes with 2 renderers:
 2. **JsonRenderer**: Renders metrics as a JSON dictionary, where each key in the 
    dictionary is a string containing the name of a metric and the corresponding
    value a dictionary containing the metric information.
+3. **PrometheusRenderer**: Renders metrics as described by the 
+   `Prometheus text exposition format <https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md#text-based-format>`_. 
+   Metric descriptions are rendered as Prometheus help strings.
 
-Both the ``PlainRenderer`` and ``JsonRenderer`` constructors expect a
-``std::ostream`` object to be passed to them. Their rendered data is written to
-this stream before the call to ``measuro::Registry::render()`` returns.
+All renderer constructors expect a ``std::ostream`` object to be passed to them. 
+Their rendered data is written to this stream before the call to 
+``measuro::Registry::render()`` returns.
 
 Below is an example of code using the Measuro renderers and the output it
 produces.
@@ -297,6 +304,12 @@ produces.
 
     measuro::PlainRenderer pl_renderer(std::cout);
     measuro::JsonRenderer js_renderer(std::cout);
+    measuro::PrometheusRenderer pr_renderer(std::cout, []()
+        {
+            /* Assumes C++20 */
+            return std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now().time_since_epoch()).count();
+        }, "example_app");
 
     std::cout << "Plain text output:\n\n";
     reg.render(pl_renderer);
@@ -304,6 +317,8 @@ produces.
     reg.render(js_renderer);
 
     std::cout << std::endl; // The JSON renderer doesn't terminate with a newline!
+
+    reg.render(pr_renderer); // Prometheus renderer always ends with a newline!
 
 .. code-block:: bash 
 
@@ -317,6 +332,13 @@ produces.
     JSON output:
 
     {"example_count":{"value":100,"unit":"item(s)","kind":"INT","description":"An example count metric"},"example_str":{"value":"Example text","unit":"","kind":"STR","description":"An example string metric"}}
+
+    Prometheus output:
+
+    # HELP example_app::example_count_items An example count metric
+    example_app::example_count_items 100 1667496909111
+    # HELP example_app::example_count2_items An example count metric
+    example_app::example_count2_items 1234 1667496909111
 
 Custom Renderers
 ^^^^^^^^^^^^^^^^

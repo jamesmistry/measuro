@@ -15,9 +15,9 @@ To use Measuro in your application you will need at minimum:
   ``-std=c++14`` switch to enable C++14 mode.
 - To link against pthread, e.g. -lpthread
 
-It's recommended that you use the Measuro build system to generate a
-development package you can install using your system package manager. To do
-this you will need package building tools such as rpm-build or builddeb.
+It's recommended you use Measuro as a sub-module in your application's 
+repository, and include the header file by specifying the Measuro ``src``
+directory as a search path.
 
 To run the Measuro test suite you will need:
 
@@ -31,62 +31,7 @@ To run the Measuro test suite you will need:
 Installing
 ----------
 
-It's recommended that you generate a development package to install on your
-system. To do this on an RPM-based system, from the repository root:
-
-.. code-block:: none
-
-    $ cmake ./ -DCPACK_GENERATOR=RPM
-
-To do this on a DEB-based system, from the repository root:
-
-.. code-block:: none
-
-    $ cmake ./ -DCPACK_GENERATOR=DEB
-
-Then:
-
-.. code-block:: none
-
-    $ make package
-
-A package file will be generated in the repository root. You can install it
-using your system's package manager, for example:
-
-.. code-block:: none
-
-    $ sudo yum install measuro-devel-x.y-z.rpm
-
-Or:
-
-.. code-block:: none
-
-    $ sudo dpkg -i measuro-devel-x.y-z.deb
-
-If you don't want to - or can't - use a development package, you can copy the
-buildable version of the Measuro header file to your source tree. To do this,
-from the repository root:
-
-.. code-block:: none
-
-    $ cmake ./
-    $ cp build/src/measuro.hpp /your/app/src
-
-Note that the way you include the Measuro header file in your source will
-differ depending on whether or not you are using a development package.
-
-If you are using a development package, you will need to:
-
-.. code-block:: none
-
-    #include <measuro/measuro.hpp>
-
-If you have copied the buildable Measuro header into your own source tree, you
-will need to:
-
-.. code-block:: none
-
-    #include "measuro.hpp"
+See the README.rst file in the root of the Measuro repository.
 
 Hello World Example
 -------------------
