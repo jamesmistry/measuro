@@ -148,9 +148,9 @@ namespace measuro
     */
     inline static void version(unsigned int & major, unsigned int & minor, unsigned int & release) noexcept
     {
-        major = @LIB_VERSION_MAJOR@;
-        minor = @LIB_VERSION_MINOR@;
-        release = @LIB_VERSION_REL@;
+        major = 0;
+        minor = 2;
+        release = 0;
     }
 
     /*!
