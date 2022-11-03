@@ -11,7 +11,7 @@ jobs:
     - name: 'Setup | Prerequisites'
       run: "sudo bash -c 'apt update && DEBIAN_FRONTEND=noninteractive apt install -y g++ build-essential cmake valgrind libgtest-dev cppcheck'"
     - name: 'Setup | Build'
-      run: 'cmake ./ && make -j 4'
+      run: 'mkdir build && cd build && cmake ../ && make -j 4'
     - name: 'Run tests'
       run: 'CTEST_OUTPUT_ON_FAILURE=1 ctest'
 
