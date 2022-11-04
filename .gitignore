@@ -5,9 +5,6 @@ CMakeScripts
 Makefile
 install_manifest.txt
 *.cmake
-.project
-.cproject
-.settings
 Testing
 *.deb
 *.rpm
@@ -15,6 +12,5 @@ Testing
 _CPack_Packages
 Debug/
 docs/code/
-.pydevproject
 measuro-devel-*
 *_exe
