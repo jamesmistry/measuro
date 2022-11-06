@@ -1,7 +1,7 @@
 Measuro
 =======
 
-.. image:: https://github.com/jamesmistry/measuro/actions/workflows/ci.yaml/badge.svg
+.. image:: https://github.com/jamesmistry/measuro/actions/workflows/.ci.yaml/badge.svg
 
 Measuro: A fast, easy-to-use header library for creating program metrics in 
 modern C++.
