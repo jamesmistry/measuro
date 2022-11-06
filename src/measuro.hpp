@@ -1,7 +1,7 @@
 /*!
  * @file measuro.hpp
  *
- * Copyright (c) 2017 James Mistry
+ * Copyright (c) 2022 James Mistry
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,7 @@
  * SOFTWARE.
  */
 
-#ifndef MEASURO_HPP
-#define MEASURO_HPP
+#pragma once
 
 #include <cstddef>
 #include <string>
@@ -46,6 +45,7 @@
 #include <iomanip>
 #include <thread>
 #include <condition_variable>
+#include <regex>
 
 namespace measuro
 {
@@ -148,9 +148,9 @@ namespace measuro
     */
     inline static void version(unsigned int & major, unsigned int & minor, unsigned int & release) noexcept
     {
-        major = @LIB_VERSION_MAJOR@;
-        minor = @LIB_VERSION_MINOR@;
-        release = @LIB_VERSION_REL@;
+        major = 0;
+        minor = 2;
+        release = 0;
     }
 
     /*!
@@ -1721,7 +1721,7 @@ namespace measuro
         {
         }
 
-        virtual ~Renderer() noexcept
+        virtual ~Renderer()
         {
         }
 
@@ -1810,7 +1810,7 @@ namespace measuro
         {
         }
 
-        virtual ~PlainRenderer() noexcept
+        virtual ~PlainRenderer() noexcept override
         {
         }
 
@@ -2106,6 +2106,241 @@ namespace measuro
     private:
         std::ostream & m_destination; //!< Output stream to which to write rendered output
         std::size_t m_count; //!< Number of metrics written to the stream since the start of the current render operation
+
+    };
+
+    /*!
+     * @class PrometheusRenderer
+     *
+     * @brief Renders metrics in the Prometheus text-based exposition format.
+     *
+     * Rendered metrics consist of
+     *
+     * Reference: https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md#text-based-format
+     *
+     * @include prometheus_renderer_example.txt
+     *
+     * @remarks thread-hostile
+     */
+    class PrometheusRenderer : public Renderer
+    {
+    public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    destination    Output stream to which to write the rendered metrics. This stream object @b must persist beyond the life of the renderer
+         *
+         * @remarks thread-hostile
+         */
+        PrometheusRenderer(std::ostream & destination, std::function<std::int64_t ()> timestamp_getter,
+                const std::string & app_name = "") noexcept : m_destination(destination), m_timestamp_getter(timestamp_getter),
+                m_count(0), m_app_name(app_name), m_METRIC_NAME_PATTERN("[a-zA-Z_:][a-zA-Z0-9_:]*"),
+                m_METRIC_NAME_CHAR_PATTERN("[a-zA-Z0-9_:]"), m_METRIC_UNIT_CHAR_PATTERN("[a-zA-Z0-9]")
+        {
+        }
+
+        virtual ~PrometheusRenderer() noexcept
+        {
+        }
+
+        /*!
+         *
+         *
+         * @remarks thread-hostile
+         */
+        virtual void before() noexcept(false) override
+        {
+            m_count = 0;
+        }
+
+        /*!
+         *
+         *
+         * @remarks thread-hostile
+         */
+        virtual void after() noexcept(false) override
+        {
+            m_destination << std::endl;
+        }
+
+        /*!
+         * Renders the metric as an entry in a Prometheus metric set.
+         *
+         * @example prometheus_renderer_example.txt
+         *
+         * @param[in]    metric    The metric to render
+         *
+         * @remarks thread-hostile
+         */
+        void render(const std::shared_ptr<Metric> & metric) noexcept(false) override final
+        {
+            std::string metric_value;
+
+            switch(metric->kind())
+            {
+            case Metric::Kind::UINT:
+            case Metric::Kind::INT:
+            case Metric::Kind::FLOAT:
+            case Metric::Kind::RATE:
+            case Metric::Kind::SUM:
+                metric_value = std::string((*metric));
+                break;
+            case Metric::Kind::BOOL:
+                if (bool(*metric))
+                {
+                    metric_value = "1";
+                }
+                else
+                {
+                    metric_value = "0";
+                }
+                break;
+            default:
+                /*
+                 * Only numeric metrics are supported by this renderer.
+                 */
+                return;
+            }
+
+            std::string name_dirty{metric->name()};
+            std::string name_sanitised;
+            if (!sanitise_name(name_dirty, name_sanitised))
+            {
+                return;
+            }
+
+            if (m_count > 0)
+            {
+                m_destination << '\n';
+            }
+
+            if (!m_app_name.empty())
+            {
+                name_sanitised = m_app_name + "::" + name_sanitised;
+            }
+
+            std::string unit_dirty{metric->unit()};
+            std::string unit_sanitised;
+            if (!unit_dirty.empty())
+            {
+                sanitise_unit(unit_dirty, unit_sanitised);
+                name_sanitised.push_back('_');
+                name_sanitised.append(unit_sanitised);
+            }
+
+            std::string help_str_dirty{metric->description()};
+            std::string help_str_sanitised;
+            if (!help_str_dirty.empty())
+            {
+                escape_str(help_str_dirty, help_str_sanitised);
+
+                m_destination << "# HELP " << name_sanitised << ' ' << help_str_sanitised << '\n';
+            }
+
+            m_destination << name_sanitised << ' ' << metric_value << ' ' << m_timestamp_getter();
+
+            ++m_count;
+        }
+
+    private:
+        bool sanitise_name(const std::string & in,
+                std::string & out)
+        {
+            /*
+             * Ref: https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
+             */
+
+            out.clear();
+
+            for (auto in_c : in)
+            {
+                std::smatch match_char;
+                std::string target;
+                target.push_back(in_c);
+
+                if (std::regex_match(target, match_char, m_METRIC_NAME_CHAR_PATTERN))
+                {
+                    out.push_back(in_c);
+                }
+                else if (in_c == '.')
+                {
+                    /*
+                    * Ref: https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
+                    */
+                    out.push_back(':');
+                    out.push_back(':');
+                }
+            }
+
+            std::smatch match_name;
+            if (!std::regex_match(out, match_name, m_METRIC_NAME_PATTERN))
+            {
+                /*
+                * Final check - if the transformed name isn't valid, give up and
+                * let the caller know.
+                */
+                out.clear();
+                return false;
+            }
+
+            return true;
+        }
+
+        void sanitise_unit(const std::string & in,
+                std::string & out)
+        {
+            /*
+             * Ref: https://prometheus.io/docs/concepts/data_model/#metric-names-and-labels
+             */
+
+            for (auto in_c : in)
+            {
+                std::smatch match_char;
+                std::string target;
+                target.push_back(in_c);
+
+                if (std::regex_match(target, match_char, m_METRIC_UNIT_CHAR_PATTERN))
+                {
+                    out.push_back(std::tolower(static_cast<unsigned char>(in_c)));
+                }
+            }
+        }
+
+        void escape_str(const std::string & in,
+                std::string & out)
+        {
+            /*
+             * Ref: https://github.com/prometheus/docs/blob/main/content/docs/instrumenting/exposition_formats.md#comments-help-text-and-type-information
+             */
+
+            out.clear();
+
+            for (auto in_c : in)
+            {
+                switch(in_c)
+                {
+                case '\n':
+                    out.push_back('\\');
+                    out.push_back('n');
+                    break;
+                case '\\':
+                    out.push_back('\\');
+                    out.push_back('\\');
+                    break;
+                default:
+                    out.push_back(in_c);
+                    break;
+                }
+            }
+        }
+
+        std::ostream & m_destination; //!< Output stream to which to write rendered output
+        std::function<std::int64_t ()> m_timestamp_getter; //!< Code to call in order to retrieve the current timestamp, in milliseconds since the Unix epoch
+        std::size_t m_count; //!< Number of metrics written to the stream since the start of the current render operation
+        std::string m_app_name; //!< Name of the application to use as a metric namespace
+        const std::regex m_METRIC_NAME_PATTERN;
+        const std::regex m_METRIC_NAME_CHAR_PATTERN;
+        const std::regex m_METRIC_UNIT_CHAR_PATTERN;
 
     };
 
@@ -3230,5 +3465,3 @@ namespace measuro
         std::shared_ptr<RenderSchedule> m_sched; //!< Scheduler for scheduling regular render operations
     };
 }
-
-#endif

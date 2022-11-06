@@ -1,15 +1,14 @@
 Measuro
 =======
 
-.. image:: https://travis-ci.org/jamesmistry/measuro.svg?branch=master
-    :target: https://travis-ci.org/jamesmistry/measuro
+.. image:: https://github.com/jamesmistry/measuro/actions/workflows/ci.yaml/badge.svg
 
 Measuro: A fast, easy-to-use header library for creating program metrics in 
 modern C++.
 
 Comprehensive Measuro documentation - including guidance for developers and
 code examples - is located at:
-<https://measuro.readthedocs.io/en/0.1.0/>
+<https://measuro.readthedocs.io/en/0.2.0/>
 
 Key Features
 ------------
@@ -25,7 +24,7 @@ Key Features
 - Minimise the performance impact of frequent metric updates using built-in 
   rate limiting options
 - Easily output metrics in custom formats using the simple Renderer interface,
-  or use the built-in plain text and JSON renderers
+  or use the built-in plain text, JSON and Prometheus renderers
 - Schedule asynchronous metric render operations to automatically write 
   formatted metrics to an output stream at regular intervals
 
@@ -60,7 +59,12 @@ To run the Measuro test suite you will need:
 
 **Installing**
 
-It's recommended that you generate a development package to install on your 
+It's recommended that you import Measuro as a sub-module for use in your
+own applications. The Measuro header file can be included by adding the ``src``
+directory in the Measuro repository root to your include search path. The header
+file as pushed to the repository is ready for inclusion.
+
+You can also generate a development package to install on your 
 system. To do this on an RPM-based system, from the repository root::
 
     $ cmake ./ -DCPACK_GENERATOR=RPM
@@ -82,29 +86,15 @@ Or::
 
     $ sudo dpkg -i measuro-devel-x.y-z.deb
 
-If you don't want to - or can't - use a development package, you can copy the 
-buildable version of the Measuro header file to your source tree. To do this,
-from the repository root::
+You can also copy the Measuro header file to your source tree. This is probably
+the least preferable option. To do this, from the repository root::
 
-    $ cmake ./
-    $ cp build/src/measuro.hpp /your/app/src
-
-Note that the way you include the Measuro header file in your source will 
-differ depending on whether or not you are using a development package. 
-
-If you are using a development package, you will need to::
-
-    #include <measuro/measuro.hpp>
-
-If you have copied the buildable Measuro header into your own source tree, you
-will need to::
-
-    #include "measuro.hpp"
+    $ cp src/measuro.hpp /your/app/src
 
 **Documentation**
 
 Comprehensive Measuro documentation is located at: 
-<https://measuro.readthedocs.io/en/0.1.0/>
+<https://measuro.readthedocs.io/en/0.2.0/>
 
 To build the documentation in the Measuro repository locally, from the 
 repository root::
@@ -122,15 +112,17 @@ Running the Tests
 To run the static analysis, unit tests and system test, from the 
 repository root::
 
-    $ cmake ./
+    $ mkdir build && cd build
+    $ cmake ../
     $ make
     $ make test
 
 To run the benchmarking program, from the repository root::
 
-    $ cmake -DCMAKE_BUILD_TYPE=Release ./
-    $ make measuro_benchmark_testexe
-    $ test/benchmark/measuro_benchmark_testexe
+    $ mkdir build && cd build
+    $ cmake -DCMAKE_BUILD_TYPE=Release ../
+    $ make measuro_benchmark_exe
+    $ ./build/bin/measuro_benchmark_exe
 
 Versioning
 ----------

@@ -11,8 +11,8 @@ namespace measuro
         measuro::version(maj, min, rel);
 
         EXPECT_EQ(maj, 0);
-        EXPECT_EQ(min, 1);
-        EXPECT_EQ(rel, 1);
+        EXPECT_EQ(min, 2);
+        EXPECT_EQ(rel, 0);
     }
 
 	TEST(Metric, version_text)
@@ -20,7 +20,7 @@ namespace measuro
 		std::string ver;
 		measuro::version_text(ver);
 
-		EXPECT_EQ(ver, "0.1-1");
+		EXPECT_EQ(ver, "0.2-0");
 	}
 
 	TEST(Metric, copyright_text)
@@ -28,7 +28,7 @@ namespace measuro
         std::string result;
         measuro::copyright_text(result);
 
-        EXPECT_EQ(result, "Measuro version 0.1-1\n\nCopyright (c) 2017, James Mistry. Released under the MIT licence - for details see https://github.com/jamesmistry/measuro");
+        EXPECT_EQ(result, "Measuro version 0.2-0\n\nCopyright (c) 2017, James Mistry. Released under the MIT licence - for details see https://github.com/jamesmistry/measuro");
     }
 
 }

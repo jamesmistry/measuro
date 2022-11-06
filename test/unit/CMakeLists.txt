@@ -4,7 +4,7 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${SRC_OUTPUT_PATH})
 
-set(EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
 
 file(GLOB test_src *.cpp)
 
@@ -19,4 +19,4 @@ else()
   target_link_libraries(measuro_unit_exe gtest gtest_main pthread)
 endif()
 
-add_test(measuro_unit_test valgrind --error-exitcode=101 --tool=memcheck --leak-check=yes --show-leak-kinds=definite,possible --track-origins=yes ${CMAKE_CURRENT_SOURCE_DIR}/measuro_unit_exe)
+add_test(measuro_unit_test valgrind --error-exitcode=101 --tool=memcheck --leak-check=yes --show-leak-kinds=definite,possible --track-origins=yes ${EXECUTABLE_OUTPUT_PATH}/measuro_unit_exe)
