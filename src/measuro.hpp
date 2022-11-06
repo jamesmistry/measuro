@@ -2160,8 +2160,7 @@ namespace measuro
          */
         virtual void after() noexcept(false) override
         {
-            m_destination << '\n';
-            m_destination.flush();
+            m_destination << std::endl;
         }
 
         /*!

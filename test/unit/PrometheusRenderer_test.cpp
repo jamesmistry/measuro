@@ -133,7 +133,7 @@ namespace measuro
         subject.render(metric);
         subject.after();
 
-        EXPECT_NE(test_output.str().find("# HELP testapp::example_count An example float metric\ntestapp::example_count "), std::string::npos);
+        EXPECT_EQ(test_output.str(), "# HELP testapp::example_count An example float metric\ntestapp::example_count 1.50 1234567\n");
     }
 
     TEST(PrometheusRenderer, render_rate)
