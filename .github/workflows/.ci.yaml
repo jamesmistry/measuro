@@ -13,5 +13,5 @@ jobs:
     - name: 'Setup | Build'
       run: 'mkdir build && cd build && cmake ../ && make -j 4'
     - name: 'Run tests'
-      run: 'CTEST_OUTPUT_ON_FAILURE=1 ctest'
+      run: 'cd build; CTEST_OUTPUT_ON_FAILURE=1 ctest'
 
