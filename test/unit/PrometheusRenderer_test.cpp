@@ -203,4 +203,10 @@ namespace measuro
 
         EXPECT_EQ(test_output.str(), "# HELP testapp::example_count An example count metric\ntestapp::example_count 100 1234567\n");
     }
+
+    TEST(PrometheusRenderer, invalid_app_name)
+    {
+        std::stringstream test_output;
+        EXPECT_THROW(PrometheusRenderer subject = PrometheusRenderer(test_output, [](){return 1234567;}, "invalid¬name"), RenderError);
+    }
 }

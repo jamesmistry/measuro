@@ -138,6 +138,27 @@ namespace measuro
     };
 
     /*!
+     * @class RenderError
+     *
+     * @brief Describes an error during a render operation, or during initialisation
+     *          of a renderer.
+     *
+     * @remarks thread-safe
+     */
+    class RenderError : public MeasuroError
+    {
+    public:
+        /*!
+         * Constructor.
+         *
+         * @param[in]    description    Description of the error
+         */
+        RenderError(const std::string description) : MeasuroError(description)
+        {
+        }
+    };
+
+    /*!
     * Retrieves the current Measuro version as integers.
     *
     * @param[out]    major     Measuro major version
@@ -2128,15 +2149,23 @@ namespace measuro
         /*!
          * Constructor.
          *
-         * @param[in]    destination    Output stream to which to write the rendered metrics. This stream object @b must persist beyond the life of the renderer
+         * @param[in]    destination         Output stream to which to write the rendered metrics. This stream object @b must persist beyond the life of the renderer
+         * @param[in]    timestamp_getter    Function that returns the current timestamp in milliseconds since the Unix epoch
+         * @param[in]    app_name            Name of the application to which the metrics belong. It must match regex: [a-zA-Z_:][a-zA-Z0-9_:]*
+         * 
+         * @throws RenderError
          *
          * @remarks thread-hostile
          */
         PrometheusRenderer(std::ostream & destination, std::function<std::int64_t ()> timestamp_getter,
-                const std::string & app_name = "") noexcept : m_destination(destination), m_timestamp_getter(timestamp_getter),
+                const std::string & app_name = "") : m_destination(destination), m_timestamp_getter(timestamp_getter),
                 m_count(0), m_app_name(app_name), m_METRIC_NAME_PATTERN("[a-zA-Z_:][a-zA-Z0-9_:]*"),
                 m_METRIC_NAME_CHAR_PATTERN("[a-zA-Z0-9_:]"), m_METRIC_UNIT_CHAR_PATTERN("[a-zA-Z0-9]")
         {
+            if (!std::regex_match(m_app_name, m_METRIC_NAME_PATTERN))
+            {
+                throw RenderError("Application name contains invalid characters. It must match regex: [a-zA-Z_:][a-zA-Z0-9_:]*");
+            }
         }
 
         virtual ~PrometheusRenderer() noexcept
